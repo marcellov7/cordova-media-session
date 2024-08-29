@@ -7,6 +7,9 @@ class BackgroundMediaPlugin: CDVPlugin {
     var player: AVPlayer?
     var playerItem: AVPlayerItem?
     var eventCallback: String?
+    var playlist: [String: [String: Any]] = [:]
+    var playlistOrder: [String] = []
+    var currentTrackId: String?
 
     @objc(play:)
     func play(command: CDVInvokedUrlCommand) {
@@ -34,14 +37,12 @@ class BackgroundMediaPlugin: CDVPlugin {
             self?.player?.play()
 
             self?.setupRemoteTransportControls()
-            self?.setupNowPlaying(title: title, artist: artist, artworkUrl: artworkUrl, isVideo: isVideo)
+            self?.setupNowPlaying(title: title, artist: artist, artworkUrl: artworkUrl)
 
             NotificationCenter.default.addObserver(self, selector: #selector(self?.playerItemDidReachEnd), name: .AVPlayerItemDidPlayToEndTime, object: self?.playerItem)
 
             let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Playback started")
             self?.commandDelegate.send(pluginResult, callbackId: command.callbackId)
-            
-            self?.sendEvent("onPlaybackStart")
         }
     }
 
@@ -51,8 +52,6 @@ class BackgroundMediaPlugin: CDVPlugin {
             self?.player?.pause()
             let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Playback paused")
             self?.commandDelegate.send(pluginResult, callbackId: command.callbackId)
-            
-            self?.sendEvent("onPlaybackEnd")
         }
     }
 
@@ -64,8 +63,6 @@ class BackgroundMediaPlugin: CDVPlugin {
             self?.clearNowPlaying()
             let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Playback stopped")
             self?.commandDelegate.send(pluginResult, callbackId: command.callbackId)
-            
-            self?.sendEvent("onPlaybackEnd")
         }
     }
 
@@ -99,22 +96,125 @@ class BackgroundMediaPlugin: CDVPlugin {
         }
     }
 
-    @objc(registerEventCallback:)
-    func registerEventCallback(command: CDVInvokedUrlCommand) {
-        self.eventCallback = command.callbackId
+    @objc(setPlaylist:)
+    func setPlaylist(command: CDVInvokedUrlCommand) {
+        guard let playlistArray = command.arguments[0] as? [[String: Any]] else {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid playlist format")
+            commandDelegate.send(pluginResult, callbackId: command.callbackId)
+            return
+        }
+
+        playlist.removeAll()
+        playlistOrder.removeAll()
+        for track in playlistArray {
+            if let id = track["id"] as? String {
+                playlist[id] = track
+                playlistOrder.append(id)
+            }
+        }
+
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Playlist set successfully")
+        commandDelegate.send(pluginResult, callbackId: command.callbackId)
     }
 
-    @objc(destroy:)
-    func destroy(command: CDVInvokedUrlCommand) {
-        DispatchQueue.main.async { [weak self] in
-            self?.player?.pause()
-            self?.player = nil
-            self?.playerItem = nil
-            self?.clearNowPlaying()
-            NotificationCenter.default.removeObserver(self as Any)
-            let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Plugin destroyed")
-            self?.commandDelegate.send(pluginResult, callbackId: command.callbackId)
+    @objc(addToPlaylist:)
+    func addToPlaylist(command: CDVInvokedUrlCommand) {
+        guard let track = command.arguments[0] as? [String: Any],
+              let id = track["id"] as? String else {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid track format")
+            commandDelegate.send(pluginResult, callbackId: command.callbackId)
+            return
         }
+
+        playlist[id] = track
+        playlistOrder.append(id)
+
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Track added to playlist")
+        commandDelegate.send(pluginResult, callbackId: command.callbackId)
+    }
+
+    @objc(removeFromPlaylist:)
+    func removeFromPlaylist(command: CDVInvokedUrlCommand) {
+        guard let id = command.arguments[0] as? String else {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid track ID")
+            commandDelegate.send(pluginResult, callbackId: command.callbackId)
+            return
+        }
+
+        playlist.removeValue(forKey: id)
+        playlistOrder.removeAll { $0 == id }
+
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Track removed from playlist")
+        commandDelegate.send(pluginResult, callbackId: command.callbackId)
+    }
+
+    @objc(playById:)
+    func playById(command: CDVInvokedUrlCommand) {
+        guard let trackId = command.arguments[0] as? String,
+              let track = playlist[trackId],
+              let urlString = track["url"] as? String,
+              let url = URL(string: urlString) else {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Invalid track ID or URL")
+            commandDelegate.send(pluginResult, callbackId: command.callbackId)
+            return
+        }
+
+        setupAudioSession()
+
+        let playerItem = AVPlayerItem(url: url)
+        player = AVPlayer(playerItem: playerItem)
+        player?.play()
+
+        currentTrackId = trackId
+        notifyTrackChanged(trackId: trackId)
+
+        setupRemoteTransportControls()
+        setupNowPlaying(track: track)
+
+        // Observe when the current item finishes playing
+        NotificationCenter.default.addObserver(self, selector: #selector(playerItemDidReachEnd), name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+
+        let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Playback started")
+        commandDelegate.send(pluginResult, callbackId: command.callbackId)
+    }
+
+    @objc(playNext:)
+    func playNext(command: CDVInvokedUrlCommand) {
+        guard let currentId = currentTrackId,
+              let currentIndex = playlistOrder.firstIndex(of: currentId),
+              currentIndex < playlistOrder.count - 1 else {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "No next track available")
+            commandDelegate.send(pluginResult, callbackId: command.callbackId)
+            return
+        }
+
+        let nextId = playlistOrder[currentIndex + 1]
+        playById(CDVInvokedUrlCommand(arguments: [nextId], callbackId: command.callbackId, className: command.className, methodName: "playById"))
+    }
+
+    @objc(playPrevious:)
+    func playPrevious(command: CDVInvokedUrlCommand) {
+        guard let currentId = currentTrackId,
+              let currentIndex = playlistOrder.firstIndex(of: currentId),
+              currentIndex > 0 else {
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "No previous track available")
+            commandDelegate.send(pluginResult, callbackId: command.callbackId)
+            return
+        }
+
+        let previousId = playlistOrder[currentIndex - 1]
+        playById(CDVInvokedUrlCommand(arguments: [previousId], callbackId: command.callbackId, className: command.className, methodName: "playById"))
+    }
+
+    @objc func playerItemDidReachEnd(notification: Notification) {
+        playNext(CDVInvokedUrlCommand(arguments: [], callbackId: "", className: "", methodName: "playNext"))
+    }
+
+    func notifyTrackChanged(trackId: String) {
+        guard let callback = eventCallback else { return }
+        let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "onTrackChanged:" + trackId)
+        result?.setKeepCallbackAs(true)
+        self.commandDelegate.send(result, callbackId: callback)
     }
 
     private func setupAudioSession() {
@@ -131,23 +231,21 @@ class BackgroundMediaPlugin: CDVPlugin {
 
         commandCenter.playCommand.addTarget { [weak self] event in
             self?.player?.play()
-            self?.sendEvent("onPlaybackStart")
             return .success
         }
 
         commandCenter.pauseCommand.addTarget { [weak self] event in
             self?.player?.pause()
-            self?.sendEvent("onPlaybackEnd")
             return .success
         }
 
         commandCenter.nextTrackCommand.addTarget { [weak self] event in
-            self?.sendEvent("onSkipForward")
+            self?.playNext(CDVInvokedUrlCommand(arguments: [], callbackId: "", className: "", methodName: "playNext"))
             return .success
         }
 
         commandCenter.previousTrackCommand.addTarget { [weak self] event in
-            self?.sendEvent("onSkipBackward")
+            self?.playPrevious(CDVInvokedUrlCommand(arguments: [], callbackId: "", className: "", methodName: "playPrevious"))
             return .success
         }
 
@@ -160,30 +258,15 @@ class BackgroundMediaPlugin: CDVPlugin {
         }
     }
 
-    private func setupNowPlaying(title: String, artist: String, artworkUrl: URL, isVideo: Bool) {
+    private func setupNowPlaying(track: [String: Any]) {
         var nowPlayingInfo = [String: Any]()
-        nowPlayingInfo[MPMediaItemPropertyTitle] = title
-        nowPlayingInfo[MPMediaItemPropertyArtist] = artist
+        nowPlayingInfo[MPMediaItemPropertyTitle] = track["title"] as? String
+        nowPlayingInfo[MPMediaItemPropertyArtist] = track["artist"] as? String
 
         if let player = player {
             nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player.currentTime().seconds
             nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = player.currentItem?.duration.seconds
             nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
-        }
-
-        // Load artwork asynchronously
-        DispatchQueue.global().async {
-            if let imageData = try? Data(contentsOf: artworkUrl),
-               let image = UIImage(data: imageData) {
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { size in
-                    return image
-                }
-                nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
-
-                DispatchQueue.main.async {
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-                }
-            }
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
@@ -193,14 +276,21 @@ class BackgroundMediaPlugin: CDVPlugin {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
-    @objc private func playerItemDidReachEnd() {
-        sendEvent("onPlaybackEnd")
+    @objc(registerEventCallback:)
+    func registerEventCallback(command: CDVInvokedUrlCommand) {
+        self.eventCallback = command.callbackId
     }
 
-    private func sendEvent(_ event: String) {
-        guard let callback = eventCallback else { return }
-        let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: event)
-        result?.setKeepCallbackAs(true)
-        self.commandDelegate.send(result, callbackId: callback)
+    @objc(destroy:)
+    func destroy(command: CDVInvokedUrlCommand) {
+        DispatchQueue.main.async { [weak self] in
+            self?.player?.pause()
+            self?.player = nil
+            self?.playerItem = nil
+            self?.clearNowPlaying()
+            NotificationCenter.default.removeObserver(self as Any)
+            let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Plugin destroyed")
+            self?.commandDelegate.send(pluginResult, callbackId: command.callbackId)
+        }
     }
 }

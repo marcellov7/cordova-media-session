@@ -16,8 +16,33 @@ var BackgroundMedia = {
     setPlaybackTime: function(time, successCallback, errorCallback) {
         exec(successCallback, errorCallback, "BackgroundMedia", "setPlaybackTime", [time]);
     },
+    setPlaylist: function(playlist, successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "setPlaylist", [playlist]);
+    },
+    addToPlaylist: function(track, successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "addToPlaylist", [track]);
+    },
+    removeFromPlaylist: function(id, successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "removeFromPlaylist", [id]);
+    },
+    playById: function(id, successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "playById", [id]);
+    },
+    playNext: function(successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "playNext", []);
+    },
+    playPrevious: function(successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "playPrevious", []);
+    },
     onEvent: function(callback) {
-        exec(callback, null, "BackgroundMedia", "registerEventCallback", []);
+        exec(function(event) {
+            if (typeof event === 'string' && event.startsWith("onTrackChanged:")) {
+                var trackId = event.split(":")[1];
+                callback({type: "onTrackChanged", trackId: trackId});
+            } else {
+                callback({type: event});
+            }
+        }, null, "BackgroundMedia", "registerEventCallback", []);
     },
     destroy: function(successCallback, errorCallback) {
         exec(successCallback, errorCallback, "BackgroundMedia", "destroy", []);

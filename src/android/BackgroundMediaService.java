@@ -1,9 +1,12 @@
-package com.marcellov7;
+package com.example;
 
 import android.app.Notification;
+import android.app.Service;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.os.Binder;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -21,6 +24,9 @@ import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BackgroundMediaService extends MediaBrowserServiceCompat {
 
@@ -31,6 +37,17 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
     private ExoPlayer player;
     private PlayerNotificationManager playerNotificationManager;
     private MediaSessionConnector mediaSessionConnector;
+    private Map<String, MediaItem> playlist = new HashMap<>();
+    private List<String> playlistOrder = new ArrayList<>();
+    private int currentIndex = 0;
+
+    private final IBinder binder = new LocalBinder();
+
+    public class LocalBinder extends Binder {
+        BackgroundMediaService getService() {
+            return BackgroundMediaService.this;
+        }
+    }
 
     @Override
     public void onCreate() {
@@ -54,18 +71,109 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
         player.addListener(new Player.Listener() {
             @Override
             public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+                if (mediaItem != null) {
+                    String trackId = mediaItem.mediaId;
+                    notifyTrackChanged(trackId);
+                }
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                    // Riproduci automaticamente il prossimo elemento
+                    // Automatically play the next item
                     if (player.hasNextMediaItem()) {
                         player.seekToNext();
                     } else {
-                        // Fine della playlist
-                        player.seekTo(0);
+                        // End of playlist
+                        player.seekTo(0, 0);
                         player.pause();
                     }
                 }
             }
         });
+
+        mediaSessionConnector.setQueueNavigator(new MediaSessionConnector.QueueNavigator() {
+            @Override
+            public long getSupportedQueueNavigatorActions(@NonNull Player player) {
+                return PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS;
+            }
+
+            @Override
+            public void onSkipToNext(@NonNull Player player) {
+                playNext();
+            }
+
+            @Override
+            public void onSkipToPrevious(@NonNull Player player) {
+                playPrevious();
+            }
+
+            // Implement other required methods...
+        });
+    }
+
+    public void setPlaylist(List<MediaItem> newPlaylist) {
+        playlist.clear();
+        playlistOrder.clear();
+        for (MediaItem item : newPlaylist) {
+            String id = item.mediaId;
+            playlist.put(id, item);
+            playlistOrder.add(id);
+        }
+        updatePlayerPlaylist();
+    }
+
+    public void addToPlaylist(MediaItem item) {
+        String id = item.mediaId;
+        playlist.put(id, item);
+        playlistOrder.add(id);
+        updatePlayerPlaylist();
+    }
+
+    public void removeFromPlaylist(String id) {
+        playlist.remove(id);
+        playlistOrder.remove(id);
+        updatePlayerPlaylist();
+    }
+
+    private void updatePlayerPlaylist() {
+        List<MediaItem> items = new ArrayList<>();
+        for (String id : playlistOrder) {
+            items.add(playlist.get(id));
+        }
+        player.setMediaItems(items);
+        player.prepare();
+    }
+
+    public void playById(String id) {
+        int index = playlistOrder.indexOf(id);
+        if (index != -1) {
+            player.seekTo(index, 0);
+            player.play();
+        }
+    }
+
+    public void playNext() {
+        if (player.hasNextMediaItem()) {
+            player.seekToNext();
+            player.play();
+        }
+    }
+
+    public void playPrevious() {
+        if (player.hasPreviousMediaItem()) {
+            player.seekToPrevious();
+            player.play();
+        }
+    }
+
+    private void notifyTrackChanged(String trackId) {
+        if (mediaSession != null) {
+            Bundle extras = new Bundle();
+            extras.putString("trackId", trackId);
+            mediaSession.setExtras(extras);
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
     }
 
     @Override
@@ -91,13 +199,15 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
     private class MediaDescriptionAdapter implements PlayerNotificationManager.MediaDescriptionAdapter {
         @Override
         public CharSequence getCurrentContentTitle(Player player) {
-            return player.getCurrentMediaItem().playbackProperties.tag.toString();
+            MediaItem currentItem = player.getCurrentMediaItem();
+            return currentItem != null ? currentItem.mediaMetadata.title : "";
         }
 
         @Nullable
         @Override
         public CharSequence getCurrentContentText(Player player) {
-            return null;
+            MediaItem currentItem = player.getCurrentMediaItem();
+            return currentItem != null ? currentItem.mediaMetadata.artist : "";
         }
 
         @Nullable
