@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        id="cordova-plugin-background-media" version="0.3.0">
+    <name>Background Media Plugin</name>
+    <description>Cordova plugin for background audio/video playback with HLS/DASH support and notification controls</description>
+    <license>MIT</license>
+    <keywords>cordova,background,audio,video,hls,dash,streaming,player</keywords>
+    <js-module src="www/backgroundMedia.js" name="backgroundMedia">
+        <clobbers target="cordova.plugins.backgroundMedia" />
+    </js-module>
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="BackgroundMedia">
+                <param name="android-package" value="com.example.BackgroundMediaPlugin"/>
+            </feature>
+        </config-file>
+        <framework src="com.google.android.exoplayer:exoplayer:2.18.1" />
+        <source-file src="src/android/BackgroundMediaPlugin.java" target-dir="src/com/example" />
+    </platform>
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="BackgroundMedia">
+                <param name="ios-package" value="BackgroundMediaPlugin" />
+            </feature>
+        </config-file>
+        <source-file src="src/ios/BackgroundMediaPlugin.swift" />
+        <dependency id="cordova-plugin-add-swift-support" version="2.0.2"/>
+    </platform>
+</plugin>

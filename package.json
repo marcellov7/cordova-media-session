@@ -1,0 +1,31 @@
+{
+    "name": "cordova-plugin-background-media",
+    "version": "1.0.0",
+    "description": "This Cordova plugin enables background audio and video playback with support for HLS and DASH streaming. It provides a unified JavaScript API for both Android and iOS platforms, allowing you to control media playback and display now playing information in the system's notification area or control center.",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/marcellov7/cordova-plugin-background-media.git"
+    },
+    "keywords": [
+      "ecosystem:cordova",
+      "cordova",
+      "background",
+      "media-ios",
+      "media-android",
+      "android",
+      "media",
+      "audio",
+      "video",
+      "player",
+      "ios"
+    ],
+    "author": "marcellov7",
+    "license": "Apache-2.0",
+    "bugs": {
+      "url": "https://github.com/marcellov7/cordova-plugin-background-media/issues"
+    },
+    "homepage": "https://github.com/marcellov7/ccordova-plugin-background-media#readme"
+  }
