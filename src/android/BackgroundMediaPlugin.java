@@ -160,8 +160,8 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
                     NOTIFICATION_ID,
                     CHANNEL_ID
             )
-            .setChannelNameResourceId(R.string.playback_channel_name)
-            .setChannelDescriptionResourceId(R.string.playback_channel_description)
+            .setChannelName("Media Playback")
+            .setChannelDescription("Controls for media playback")
             .setMediaDescriptionAdapter(new PlayerNotificationManager.MediaDescriptionAdapter() {
                 @Override
                 public CharSequence getCurrentContentTitle(Player player) {
@@ -187,7 +187,6 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
             .setNotificationListener(new PlayerNotificationManager.NotificationListener() {
                 @Override
                 public void onNotificationPosted(int notificationId, Notification notification, boolean ongoing) {
-                    // Keep the service in the foreground when notification is posted
                     cordova.getActivity().startForeground(notificationId, notification);
                 }
 
