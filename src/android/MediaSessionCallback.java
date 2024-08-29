@@ -1,6 +1,7 @@
-package com.example;
+package com.marcellov7.cordova.mediasession;
 
 import android.support.v4.media.session.MediaSessionCompat;
+
 import org.json.JSONObject;
 
 public class MediaSessionCallback extends MediaSessionCompat.Callback {
@@ -14,47 +15,47 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback {
 
     @Override
     public void onPlay() {
-        plugin.notifyActionHandler("play", null);
+        plugin.actionCallback("play");
     }
 
     @Override
     public void onPause() {
-        plugin.notifyActionHandler("pause", null);
+        plugin.actionCallback("pause");
     }
 
     @Override
     public void onSeekTo(long pos) {
         JSONObject data = new JSONObject();
         try {
-            data.put("seekTime", (double) pos / 1000.0);
+            data.put("seekTime", (double) pos/1000.0);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        plugin.notifyActionHandler("seekto", data);
+        plugin.actionCallback("seekto", data);
     }
 
     @Override
     public void onRewind() {
-        plugin.notifyActionHandler("seekbackward", null);
+        plugin.actionCallback("seekbackward");
     }
 
     @Override
     public void onFastForward() {
-        plugin.notifyActionHandler("seekforward", null);
+        plugin.actionCallback("seekforward");
     }
 
     @Override
     public void onSkipToPrevious() {
-        plugin.notifyActionHandler("previoustrack", null);
+        plugin.actionCallback("previoustrack");
     }
 
     @Override
     public void onSkipToNext() {
-        plugin.notifyActionHandler("nexttrack", null);
+        plugin.actionCallback("nexttrack");
     }
 
     @Override
     public void onStop() {
-        plugin.notifyActionHandler("stop", null);
+        plugin.actionCallback("stop");
     }
 }

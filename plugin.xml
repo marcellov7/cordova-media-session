@@ -6,7 +6,6 @@
     <description>Cordova plugin for Media Sessions on Web, iOS and Android</description>
     <license>MIT</license>
     <keywords>cordova,media,session,audio,playback,controls</keywords>
-    <repo>https://github.com/yourusername/cordova-plugin-media-session.git</repo>
     
     <js-module src="www/MediaSession.js" name="MediaSession">
         <clobbers target="cordova.plugins.MediaSession" />
@@ -15,13 +14,13 @@
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="MediaSession">
-                <param name="android-package" value="com.example.MediaSessionPlugin"/>
+                <param name="android-package" value="com.marcellov7.cordova.mediasession.MediaSessionPlugin"/>
             </feature>
         </config-file>
         
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service
-                android:name="com.example.MediaSessionService"
+                android:name="com.marcellov7.cordova.mediasession.MediaSessionService"
                 android:enabled="true"
                 android:exported="true"
                 android:foregroundServiceType="mediaPlayback">
@@ -42,9 +41,18 @@
             <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
         </config-file>
         
-        <source-file src="src/android/MediaSessionPlugin.java" target-dir="src/com/example" />
-        <source-file src="src/android/MediaSessionService.java" target-dir="src/com/example" />
-        <source-file src="src/android/MediaSessionCallback.java" target-dir="src/com/example" />
+        <source-file src="src/android/MediaSessionPlugin.java" target-dir="src/com/marcellov7/cordova/mediasession" />
+        <source-file src="src/android/MediaSessionService.java" target-dir="src/com/marcellov7/cordova/mediasession" />
+        <source-file src="src/android/MediaSessionCallback.java" target-dir="src/com/marcellov7/cordova/mediasession" />
+        
+        <resource-file src="src/android/res/drawable/ic_baseline_forward_30_24.xml" target="res/drawable/ic_baseline_forward_30_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_pause_24.xml" target="res/drawable/ic_baseline_pause_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_play_arrow_24.xml" target="res/drawable/ic_baseline_play_arrow_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_replay_30_24.xml" target="res/drawable/ic_baseline_replay_30_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_skip_next_24.xml" target="res/drawable/ic_baseline_skip_next_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_skip_previous_24.xml" target="res/drawable/ic_baseline_skip_previous_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_stop_24.xml" target="res/drawable/ic_baseline_stop_24.xml" />
+        <resource-file src="src/android/res/drawable/ic_baseline_volume_up_24.xml" target="res/drawable/ic_baseline_volume_up_24.xml" />
         
         <framework src="androidx.media:media:1.6.0" />
     </platform>

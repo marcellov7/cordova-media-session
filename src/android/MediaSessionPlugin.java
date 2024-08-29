@@ -1,4 +1,4 @@
-package com.example;
+package com.marcellov7.cordova.mediasession;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
@@ -17,19 +17,32 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Base64;
 import android.util.Log;
 
+import androidx.core.content.ContextCompat;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MediaSessionPlugin extends CordovaPlugin {
     private static final String TAG = "MediaSessionPlugin";
 
-    private MediaSessionService service = null;
     private boolean startServiceOnlyDuringPlayback = true;
+
+    private String title = "";
+    private String artist = "";
+    private String album = "";
+    private Bitmap artwork = null;
+    private String playbackState = "none";
+    private double duration = 0.0;
+    private double position = 0.0;
+    private double playbackRate = 1.0;
     private final Map<String, CallbackContext> actionHandlers = new HashMap<>();
+
+    private MediaSessionService service = null;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -38,6 +51,9 @@ public class MediaSessionPlugin extends CordovaPlugin {
             service = binder.getService();
             Intent intent = new Intent(cordova.getActivity(), cordova.getActivity().getClass());
             service.connectAndInitialize(MediaSessionPlugin.this, intent);
+            updateServiceMetadata();
+            updateServicePlaybackState();
+            updateServicePositionState();
         }
 
         @Override
@@ -45,6 +61,56 @@ public class MediaSessionPlugin extends CordovaPlugin {
             Log.d(TAG, "Disconnected from MediaSessionService");
         }
     };
+
+    @Override
+    protected void pluginInitialize() {
+        super.pluginInitialize();
+
+        if (!startServiceOnlyDuringPlayback) {
+            startMediaService();
+        }
+    }
+
+    public void startMediaService() {
+        Intent intent = new Intent(cordova.getActivity(), MediaSessionService.class);
+        ContextCompat.startForegroundService(cordova.getContext(), intent);
+        cordova.getActivity().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void updateServiceMetadata() {
+        if (service != null) {
+            service.setTitle(title);
+            service.setArtist(artist);
+            service.setAlbum(album);
+            service.setArtwork(artwork);
+            service.update();
+        }
+    }
+
+    private Bitmap urlToBitmap(String url) throws IOException {
+        final boolean blobUrl = url.startsWith("blob:");
+        if (blobUrl) {
+            Log.i(TAG, "Converting Blob URLs to Bitmap for media artwork is not yet supported");
+        }
+
+        final boolean httpUrl = url.startsWith("http");
+        if (httpUrl) {
+            HttpURLConnection connection = (HttpURLConnection) (new URL(url)).openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream inputStream = connection.getInputStream();
+            return BitmapFactory.decodeStream(inputStream);
+        }
+
+        int base64Index = url.indexOf(";base64,");
+        if (base64Index != -1) {
+            String base64Data = url.substring(base64Index + 8);
+            byte[] decoded = Base64.decode(base64Data, Base64.DEFAULT);
+            return BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+        }
+
+        return null;
+    }
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -64,119 +130,109 @@ public class MediaSessionPlugin extends CordovaPlugin {
         return false;
     }
 
-    private void setMetadata(JSONObject options, CallbackContext callbackContext) {
-        try {
-            String title = options.optString("title", "");
-            String artist = options.optString("artist", "");
-            String album = options.optString("album", "");
-            JSONArray artworkArray = options.optJSONArray("artwork");
-            Bitmap artwork = null;
-            if (artworkArray != null && artworkArray.length() > 0) {
-                JSONObject artworkObj = artworkArray.getJSONObject(0);
-                String src = artworkObj.optString("src");
+    private void setMetadata(JSONObject options, CallbackContext callbackContext) throws JSONException, IOException {
+        title = options.optString("title", title);
+        artist = options.optString("artist", artist);
+        album = options.optString("album", album);
+
+        final JSONArray artworkArray = options.optJSONArray("artwork");
+        if (artworkArray != null) {
+            final List<JSONObject> artworkList = artworkArray.toList();
+            for (JSONObject artwork : artworkList) {
+                String src = artwork.getString("src");
                 if (src != null) {
-                    artwork = urlToBitmap(src);
+                    this.artwork = urlToBitmap(src);
                 }
             }
-
-            if (service != null) {
-                service.setTitle(title);
-                service.setArtist(artist);
-                service.setAlbum(album);
-                service.setArtwork(artwork);
-                service.update();
-            }
-
-            callbackContext.success();
-        } catch (Exception e) {
-            callbackContext.error("Error setting metadata: " + e.getMessage());
         }
+
+        if (service != null) { 
+            updateServiceMetadata();
+        }
+        callbackContext.success();
     }
 
-    private void setPlaybackState(JSONObject options, CallbackContext callbackContext) {
-        try {
-            String playbackState = options.getString("playbackState");
+    private void updateServicePlaybackState() {
+        if (service != null) {
             int state;
-            switch (playbackState) {
-                case "playing":
-                    state = PlaybackStateCompat.STATE_PLAYING;
-                    break;
-                case "paused":
-                    state = PlaybackStateCompat.STATE_PAUSED;
-                    break;
-                default:
-                    state = PlaybackStateCompat.STATE_NONE;
+            if (playbackState.equals("playing")) {
+                state = PlaybackStateCompat.STATE_PLAYING;
+            } else if (playbackState.equals("paused")) {
+                state = PlaybackStateCompat.STATE_PAUSED;
+            } else {
+                state = PlaybackStateCompat.STATE_NONE;
             }
-
-            if (service != null) {
-                service.setPlaybackState(state);
-                service.update();
-            }
-
-            callbackContext.success();
-        } catch (Exception e) {
-            callbackContext.error("Error setting playback state: " + e.getMessage());
+            service.setPlaybackState(state);
+            service.update();
         }
     }
 
-    private void setActionHandler(JSONObject options, CallbackContext callbackContext) {
-        try {
-            String action = options.getString("action");
-            actionHandlers.put(action, callbackContext);
-            
-            if (service != null) {
-                service.updatePossibleActions();
-            }
-        } catch (Exception e) {
-            callbackContext.error("Error setting action handler: " + e.getMessage());
+    private void setPlaybackState(JSONObject options, CallbackContext callbackContext) throws JSONException {
+        playbackState = options.getString("playbackState");
+
+        final boolean playback = playbackState.equals("playing") || playbackState.equals("paused");
+        if (startServiceOnlyDuringPlayback && service == null && playback) {
+            startMediaService();
+        } else if (startServiceOnlyDuringPlayback && service != null && !playback) {
+            cordova.getActivity().unbindService(serviceConnection);
+            service = null;
+        } else if (service != null) {
+            updateServicePlaybackState();
+        }
+        callbackContext.success();
+    }
+
+    private void updateServicePositionState() {
+        if (service != null) {
+            service.setDuration(Math.round(duration * 1000));
+            service.setPosition(Math.round(position * 1000));
+            float playbackSpeed = playbackRate == 0.0 ? (float) 1.0 : (float) playbackRate;
+            service.setPlaybackSpeed(playbackSpeed);
+            service.update();
         }
     }
 
-    private void setPositionState(JSONObject options, CallbackContext callbackContext) {
-        try {
-            double duration = options.optDouble("duration", 0);
-            double position = options.optDouble("position", 0);
-            float playbackRate = (float) options.optDouble("playbackRate", 1.0);
+    private void setPositionState(JSONObject options, CallbackContext callbackContext) throws JSONException {
+        duration = options.optDouble("duration", duration);
+        position = options.optDouble("position", position);
+        playbackRate = options.optDouble("playbackRate", playbackRate);
 
-            if (service != null) {
-                service.setDuration(Math.round(duration * 1000));
-                service.setPosition(Math.round(position * 1000));
-                service.setPlaybackSpeed(playbackRate);
-                service.update();
-            }
+        if (service != null) { 
+            updateServicePositionState();
+        }
+        callbackContext.success();
+    }
 
-            callbackContext.success();
-        } catch (Exception e) {
-            callbackContext.error("Error setting position state: " + e.getMessage());
+    private void setActionHandler(JSONObject options, CallbackContext callbackContext) throws JSONException {
+        String action = options.getString("action");
+        actionHandlers.put(action, callbackContext);
+
+        if (service != null) { 
+            service.updatePossibleActions();
         }
     }
 
-    private Bitmap urlToBitmap(String url) throws IOException {
-        if (url.startsWith("http") || url.startsWith("https")) {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            Bitmap bitmap = BitmapFactory.decodeStream(input);
-            input.close();
-            connection.disconnect();
-            return bitmap;
-        } else if (url.startsWith("data:image")) {
-            String base64Data = url.substring(url.indexOf(",") + 1);
-            byte[] decodedString = Base64.decode(base64Data, Base64.DEFAULT);
-            return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-        } else {
-            Log.e(TAG, "Unsupported URL format for artwork");
-            return null;
-        }
+    public boolean hasActionHandler(String action) {
+        return actionHandlers.containsKey(action);
     }
 
-    public void notifyActionHandler(String action, JSONObject data) {
+    public void actionCallback(String action) {
+        actionCallback(action, new JSONObject());
+    }
+
+    public void actionCallback(String action, JSONObject data) {
         CallbackContext callbackContext = actionHandlers.get(action);
         if (callbackContext != null) {
-            PluginResult result = new PluginResult(PluginResult.Status.OK, data);
-            result.setKeepCallback(true);
-            callbackContext.sendPluginResult(result);
+            try {
+                data.put("action", action);
+                PluginResult result = new PluginResult(PluginResult.Status.OK, data);
+                result.setKeepCallback(true);
+                callbackContext.sendPluginResult(result);
+            } catch (JSONException e) {
+                Log.e(TAG, "Error creating JSON data for action callback", e);
+            }
+        } else {
+            Log.d(TAG, "No handler for action " + action);
         }
     }
 
