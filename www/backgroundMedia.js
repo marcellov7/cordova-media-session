@@ -18,6 +18,9 @@ var BackgroundMedia = {
     },
     onEvent: function(callback) {
         exec(callback, null, "BackgroundMedia", "registerEventCallback", []);
+    },
+    destroy: function(successCallback, errorCallback) {
+        exec(successCallback, errorCallback, "BackgroundMedia", "destroy", []);
     }
 };
 

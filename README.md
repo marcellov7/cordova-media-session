@@ -99,17 +99,6 @@ Destroys the plugin instance and releases all resources.
 - `onSkipForward`: Fired when the user presses the next track button
 - `onSkipBackward`: Fired when the user presses the previous track button
 
-## Platform Specific Notes
-
-### Android
-
-- Uses ExoPlayer for media playback
-- Displays a notification with media controls and metadata
-
-### iOS
-
-- Uses AVPlayer for media playback
-- Updates the Now Playing info in the Control Center and lock screen
 
 ## Requirements
 

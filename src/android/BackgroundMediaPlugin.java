@@ -1,4 +1,4 @@
-package com.example;
+package com.marcellov7;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import androidx.media.MediaBrowserServiceCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -56,6 +57,9 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
             case "registerEventCallback":
                 this.eventCallback = callbackContext;
                 return true;
+            case "destroy":
+                destroy(callbackContext);
+                return true;
         }
         return false;
     }
@@ -73,7 +77,17 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
                             @Override
                             public void onPlaybackStateChanged(PlaybackStateCompat state) {
                                 if (eventCallback != null) {
-                                    PluginResult result = new PluginResult(PluginResult.Status.OK, "onPlaybackStateChanged");
+                                    String eventName = "";
+                                    switch (state.getState()) {
+                                        case PlaybackStateCompat.STATE_PLAYING:
+                                            eventName = "onPlaybackStart";
+                                            break;
+                                        case PlaybackStateCompat.STATE_PAUSED:
+                                        case PlaybackStateCompat.STATE_STOPPED:
+                                            eventName = "onPlaybackEnd";
+                                            break;
+                                    }
+                                    PluginResult result = new PluginResult(PluginResult.Status.OK, eventName);
                                     result.setKeepCallback(true);
                                     eventCallback.sendPluginResult(result);
                                 }
@@ -149,4 +163,21 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
             callbackContext.error("Media controller not initialized");
         }
     }
+
+    private void destroy(CallbackContext callbackContext) {
+        if (mediaBrowser != null && mediaBrowser.isConnected()) {
+            mediaBrowser.disconnect();
+        }
+        if (mediaController != null) {
+            mediaController.unregisterCallback(mediaControllerCallback);
+        }
+        callbackContext.success("Plugin destroyed");
+    }
+
+    private MediaControllerCompat.Callback mediaControllerCallback = new MediaControllerCompat.Callback() {
+        @Override
+        public void onPlaybackStateChanged(PlaybackStateCompat state) {
+            // Handle playback state changes
+        }
+    };
 }

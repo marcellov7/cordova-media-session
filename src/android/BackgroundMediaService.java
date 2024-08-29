@@ -1,7 +1,8 @@
-package com.example;
+package com.marcellov7;
 
 import android.app.Notification;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
@@ -95,9 +96,9 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
 
         @Nullable
         @Override
-        public PendingIntent createCurrentContentIntent(Player player) {
+        public android.app.PendingIntent createCurrentContentIntent(Player player) {
             Intent intent = new Intent(BackgroundMediaService.this, cordova.getActivity().getClass());
-            return PendingIntent.getActivity(BackgroundMediaService.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            return android.app.PendingIntent.getActivity(BackgroundMediaService.this, 0, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT);
         }
     }
 
