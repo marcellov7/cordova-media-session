@@ -1,7 +1,7 @@
 # cordova-plugin-media-session
 
-Cordova plugin for Media Sessions on Web, iOS and Android. This plugin enables:
-- Customizable media playback notifications (including controls) on Android and some browsers
+Cordova plugin for Media Sessions on iOS and Android. This plugin enables:
+- Customizable media playback notifications (including controls) on Android
 - Media control using hardware media keys (e.g. on headsets, remote controls, etc.)
 - Setting media metadata that can be used by the platform UI
 
@@ -87,7 +87,7 @@ Updates the current media playback position state.
 
 ## Platform Specifics
 
-- On iOS and Web browsers that support it, this plugin uses the standard Web Media Session API.
+- On iOS that support it, this plugin uses the standard Web Media Session API.
 - On Android, where the Web Media Session API is not available in WebView, this plugin provides a native implementation that mimics the behavior of the Web API.
 
 ## Notes
