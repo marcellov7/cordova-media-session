@@ -27,6 +27,7 @@
         <framework src="com.google.android.exoplayer:exoplayer-hls:2.18.1" />
         <framework src="com.google.android.exoplayer:exoplayer-dash:2.18.1" />
         <framework src="com.google.android.exoplayer:exoplayer-ui:2.18.1" />
+        <framework src="com.google.android.exoplayer:extension-mediasession:2.18.1" />
         <framework src="androidx.media:media:1.6.0" />
         <source-file src="src/android/BackgroundMediaPlugin.java" target-dir="src/com/marcellov7" />
         <source-file src="src/android/BackgroundMediaService.java" target-dir="src/com/marcellov7" />

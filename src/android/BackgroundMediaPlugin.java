@@ -23,6 +23,7 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
     private MediaBrowserCompat mediaBrowser;
     private MediaControllerCompat mediaController;
     private CallbackContext eventCallback;
+    private static android.app.Activity cordovaActivity;
 
     @Override
     public void onDestroy() {
@@ -30,6 +31,16 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
         if (mediaBrowser != null && mediaBrowser.isConnected()) {
             mediaBrowser.disconnect();
         }
+    }
+
+    @Override
+    protected void pluginInitialize() {
+        super.pluginInitialize();
+        cordovaActivity = cordova.getActivity();
+    }
+
+    public static android.app.Activity getCordovaActivity() {
+        return cordovaActivity;
     }
 
     @Override
@@ -90,6 +101,19 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
                                     PluginResult result = new PluginResult(PluginResult.Status.OK, eventName);
                                     result.setKeepCallback(true);
                                     eventCallback.sendPluginResult(result);
+                                }
+                            }
+                        });
+
+                        mediaController.registerCallback(new MediaControllerCompat.Callback() {
+                            @Override
+                            public void onSessionEvent(String event, Bundle extras) {
+                                if (eventCallback != null) {
+                                    if ("onSkipForward".equals(event) || "onSkipBackward".equals(event)) {
+                                        PluginResult result = new PluginResult(PluginResult.Status.OK, event);
+                                        result.setKeepCallback(true);
+                                        eventCallback.sendPluginResult(result);
+                                    }
                                 }
                             }
                         });

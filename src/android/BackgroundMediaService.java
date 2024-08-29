@@ -30,6 +30,7 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
     private MediaSessionCompat mediaSession;
     private ExoPlayer player;
     private PlayerNotificationManager playerNotificationManager;
+    private MediaSessionConnector mediaSessionConnector;
 
     @Override
     public void onCreate() {
@@ -37,7 +38,7 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
 
         player = new ExoPlayer.Builder(this).build();
         mediaSession = new MediaSessionCompat(this, "BackgroundMediaService");
-        MediaSessionConnector mediaSessionConnector = new MediaSessionConnector(mediaSession);
+        mediaSessionConnector = new MediaSessionConnector(mediaSession);
         mediaSessionConnector.setPlayer(player);
 
         setSessionToken(mediaSession.getSessionToken());
@@ -49,11 +50,28 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
 
         playerNotificationManager.setPlayer(player);
         playerNotificationManager.setMediaSessionToken(mediaSession.getSessionToken());
+
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onMediaItemTransition(@Nullable MediaItem mediaItem, int reason) {
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    // Riproduci automaticamente il prossimo elemento
+                    if (player.hasNextMediaItem()) {
+                        player.seekToNext();
+                    } else {
+                        // Fine della playlist
+                        player.seekTo(0);
+                        player.pause();
+                    }
+                }
+            }
+        });
     }
 
     @Override
     public void onDestroy() {
         mediaSession.release();
+        mediaSessionConnector.setPlayer(null);
         player.release();
         playerNotificationManager.setPlayer(null);
         super.onDestroy();
@@ -97,7 +115,7 @@ public class BackgroundMediaService extends MediaBrowserServiceCompat {
         @Nullable
         @Override
         public android.app.PendingIntent createCurrentContentIntent(Player player) {
-            Intent intent = new Intent(BackgroundMediaService.this, cordova.getActivity().getClass());
+            Intent intent = new Intent(BackgroundMediaService.this, BackgroundMediaPlugin.getCordovaActivity());
             return android.app.PendingIntent.getActivity(BackgroundMediaService.this, 0, intent, android.app.PendingIntent.FLAG_UPDATE_CURRENT);
         }
     }
