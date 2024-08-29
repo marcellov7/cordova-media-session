@@ -1,7 +1,7 @@
 {
     "name": "capacitor-media-session",
     "version": "1.0.0",
-    "description": "This Cordova plugin enables background audio and video playback with support for HLS and DASH streaming. It provides a unified JavaScript API for both Android and iOS platforms, allowing you to control media playback and display now playing information in the system's notification area or control center.",
+    "description": "Cordova plugin for Media Sessions on Web, iOS and Android.",
     "scripts": {
       "test": "echo \"Error: no test specified\" && exit 1"
     },

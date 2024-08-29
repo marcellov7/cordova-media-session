@@ -1,43 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-        id="cordova-plugin-background-media" version="1.0.0">
-    <name>Background Media Plugin</name>
-    <description>Cordova plugin for background media playback with HLS and DASH support</description>
+        id="cordova-plugin-media-session"
+        version="1.0.0">
+    <name>Media Session</name>
+    <description>Cordova plugin for Media Sessions on Web, iOS and Android</description>
     <license>MIT</license>
-    <keywords>cordova,background,media,audio,video,hls,dash,player</keywords>
-    <js-module src="www/backgroundMedia.js" name="backgroundMedia">
-        <clobbers target="cordova.plugins.backgroundMedia" />
+    <keywords>cordova,media,session,audio,playback,controls</keywords>
+    <repo>https://github.com/yourusername/cordova-plugin-media-session.git</repo>
+    
+    <js-module src="www/MediaSession.js" name="MediaSession">
+        <clobbers target="cordova.plugins.MediaSession" />
     </js-module>
+    
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
-            <feature name="BackgroundMedia">
-                <param name="android-package" value="com.example.BackgroundMediaPlugin"/>
+            <feature name="MediaSession">
+                <param name="android-package" value="com.example.MediaSessionPlugin"/>
             </feature>
         </config-file>
+        
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service
-                android:name="com.example.BackgroundMediaService"
-                android:exported="false">
+                android:name="com.example.MediaSessionService"
+                android:enabled="true"
+                android:exported="true"
+                android:foregroundServiceType="mediaPlayback">
                 <intent-filter>
-                    <action android:name="android.media.browse.MediaBrowserService" />
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
                 </intent-filter>
             </service>
+            <receiver
+                android:name="androidx.media.session.MediaButtonReceiver"
+                android:exported="true">
+                <intent-filter>
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
+                </intent-filter>
+            </receiver>
         </config-file>
-        <framework src="com.google.android.exoplayer:exoplayer-core:2.18.1" />
-        <framework src="com.google.android.exoplayer:exoplayer-hls:2.18.1" />
-        <framework src="com.google.android.exoplayer:exoplayer-dash:2.18.1" />
-        <framework src="com.google.android.exoplayer:exoplayer-ui:2.18.1" />
+        
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+        </config-file>
+        
+        <source-file src="src/android/MediaSessionPlugin.java" target-dir="src/com/example" />
+        <source-file src="src/android/MediaSessionService.java" target-dir="src/com/example" />
+        <source-file src="src/android/MediaSessionCallback.java" target-dir="src/com/example" />
+        
         <framework src="androidx.media:media:1.6.0" />
-        <source-file src="src/android/BackgroundMediaPlugin.java" target-dir="src/com/example" />
-        <source-file src="src/android/BackgroundMediaService.java" target-dir="src/com/example" />
-    </platform>
-    <platform name="ios">
-        <config-file target="config.xml" parent="/*">
-            <feature name="BackgroundMedia">
-                <param name="ios-package" value="BackgroundMediaPlugin" />
-            </feature>
-        </config-file>
-        <source-file src="src/ios/BackgroundMediaPlugin.swift" />
-        <dependency id="cordova-plugin-add-swift-support" version="2.0.2"/>
     </platform>
 </plugin>

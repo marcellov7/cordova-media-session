@@ -1,198 +1,116 @@
-# Cordova Background Media Plugin
+# cordova-plugin-media-session
 
-This Cordova plugin enables background audio and video playback with support for HLS and DASH streaming. It provides a unified JavaScript API for both Android and iOS platforms, allowing you to control media playback and display now playing information in the system's notification area or control center.
-
-## Features
-
-- Background audio and video playback
-- Support for HLS and DASH streaming
-- Media controls in system notification (Android) and control center (iOS)
-- Custom metadata display (title, artist, artwork)
-- Playback time control
-- Volume control
-- Playlist management with unique IDs
-- Next/Previous track controls
-- Playback events (start, end, skip forward, skip backward)
+Cordova plugin for Media Sessions on Web, iOS and Android. This plugin enables:
+- Customizable media playback notifications (including controls) on Android and some browsers
+- Media control using hardware media keys (e.g. on headsets, remote controls, etc.)
+- Setting media metadata that can be used by the platform UI
 
 ## Installation
 
 ```bash
-cordova plugin add cordova-plugin-background-media
+cordova plugin add cordova-plugin-media-session
 ```
 
 ## Usage
 
+The API of this plugin is modeled after the Media Session Web API. Here's how to use it:
+
 ```javascript
-var backgroundMedia = cordova.plugins.backgroundMedia;
+var mediaSession = cordova.plugins.MediaSession;
 
-// Play a single track
-backgroundMedia.play(
-    'https://example.com/stream.m3u8',
-    'Song Title',
-    'Artist Name',
-    'https://example.com/artwork.jpg',
-    false, // isVideo
-    0, // startTime
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Set a playlist
-var playlist = [
-    {id: "1", url: "https://example.com/song1.mp3", title: "Song 1", artist: "Artist 1"},
-    {id: "2", url: "https://example.com/song2.mp3", title: "Song 2", artist: "Artist 2"},
-    // ...
-];
-
-backgroundMedia.setPlaylist(playlist, 
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Add a track to the playlist
-backgroundMedia.addToPlaylist(
-    {id: "3", url: "https://example.com/song3.mp3", title: "Song 3", artist: "Artist 3"},
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Remove a track from the playlist
-backgroundMedia.removeFromPlaylist(
-    "2", // track ID
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Play a specific track by ID
-backgroundMedia.playById(
-    "3", // track ID
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Listen for events
-backgroundMedia.onEvent(function(event) {
-    switch(event) {
-        case "onPlaybackStart":
-            console.log("Playback started");
-            break;
-        case "onPlaybackEnd":
-            console.log("Playback ended");
-            break;
-        case "onSkipForward":
-            console.log("Skipped to next track");
-            break;
-        case "onSkipBackward":
-            console.log("Skipped to previous track");
-            break;
-    }
+// Set metadata
+mediaSession.setMetadata({
+    title: 'Song Title',
+    artist: 'Artist Name',
+    album: 'Album Name',
+    artwork: [{ src: 'path/to/artwork.png', sizes: '512x512', type: 'image/png' }]
 });
 
-// Other methods
-backgroundMedia.pause(successCallback, errorCallback);
-backgroundMedia.stop(successCallback, errorCallback);
-backgroundMedia.setVolume(0.5, successCallback, errorCallback);
-backgroundMedia.setPlaybackTime(60, successCallback, errorCallback);
-backgroundMedia.playNext(successCallback, errorCallback);
-backgroundMedia.playPrevious(successCallback, errorCallback);
-backgroundMedia.destroy(successCallback, errorCallback);
+// Set playback state
+mediaSession.setPlaybackState({ playbackState: 'playing' });
+
+// Set action handlers
+mediaSession.setActionHandler({ action: 'play' }, function() {
+    // Handle play action
+});
+
+mediaSession.setActionHandler({ action: 'pause' }, function() {
+    // Handle pause action
+});
+
+// Set position state
+mediaSession.setPositionState({
+    duration: 300,
+    playbackRate: 1,
+    position: 150
+});
 ```
 
 ## API Reference
 
-### play(url, title, artist, artwork, isVideo, startTime, successCallback, errorCallback)
+### setMetadata(options)
 
-Starts playback of the specified media.
+Sets the metadata for the currently playing media.
 
-### pause(successCallback, errorCallback)
+- `options`: An object containing metadata properties:
+  - `title`: The title of the media (string)
+  - `artist`: The artist name (string)
+  - `album`: The album name (string)
+  - `artwork`: An array of artwork objects, each containing:
+    - `src`: URL of the artwork image
+    - `sizes`: Size of the image (e.g., '512x512')
+    - `type`: MIME type of the image (e.g., 'image/png')
 
-Pauses the current playback.
+### setPlaybackState(options)
 
-### stop(successCallback, errorCallback)
+Sets the current playback state.
 
-Stops the current playback and releases resources.
+- `options`: An object containing:
+  - `playbackState`: A string representing the playback state ('playing', 'paused', or 'none')
 
-### setVolume(volume, successCallback, errorCallback)
+### setActionHandler(options, handler)
 
-Sets the playback volume (0.0 to 1.0).
+Sets a handler for a specific media action.
 
-### setPlaybackTime(time, successCallback, errorCallback)
+- `options`: An object containing:
+  - `action`: A string representing the action ('play', 'pause', 'seekbackward', 'seekforward', 'previoustrack', 'nexttrack', 'stop', 'seekto')
+- `handler`: A function to be called when the action is triggered
 
-Sets the current playback time in seconds.
+### setPositionState(options)
 
-### setPlaylist(playlist, successCallback, errorCallback)
+Updates the current media playback position state.
 
-Sets the current playlist.
+- `options`: An object containing:
+  - `duration`: The total duration of the media in seconds (number)
+  - `playbackRate`: The current playback rate (number)
+  - `position`: The current playback position in seconds (number)
 
-### addToPlaylist(track, successCallback, errorCallback)
+## Platform Specifics
 
-Adds a track to the current playlist.
+- On iOS and Web browsers that support it, this plugin uses the standard Web Media Session API.
+- On Android, where the Web Media Session API is not available in WebView, this plugin provides a native implementation that mimics the behavior of the Web API.
 
-### removeFromPlaylist(id, successCallback, errorCallback)
+## Notes
 
-Removes a track from the current playlist by ID.
+- Make sure to handle all relevant media actions for a smooth user experience across all platforms.
+- The plugin starts a foreground service on Android to enable background playback and show the media notification.
+- Artwork URLs can be remote (http/https) or data URLs.
 
-### playById(id, successCallback, errorCallback)
+## Known Issues
 
-Plays a specific track from the playlist by ID.
-
-### playNext(successCallback, errorCallback)
-
-Skips to the next track in the playlist.
-
-### playPrevious(successCallback, errorCallback)
-
-Skips to the previous track in the playlist.
-
-### onEvent(callback)
-
-Registers a callback to receive playback events.
-
-### destroy(successCallback, errorCallback)
-
-Destroys the plugin instance and releases all resources.
-
-## Events
-
-- `onPlaybackStart`: Fired when playback starts
-- `onPlaybackEnd`: Fired when playback ends
-- `onSkipForward`: Fired when the user skips to the next track
-- `onSkipBackward`: Fired when the user skips to the previous track
-
-## Requirements
-
-- Cordova 9.0.0 or higher
-- iOS 11.0 or higher
-- Android 5.0 (API 21) or higher
-
-## License
-
-This project is licensed under the MIT License.
+- On some Android devices, the media notification might not show immediately after setting metadata. This is usually resolved once playback begins.
+- Seeking on iOS might not be as precise as on Android due to limitations in the Web Media Session API implementation on iOS.
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## License
+
+This project is licensed under the MIT License.
+
 ## Support
 
-If you're having any problem, please raise an issue on GitHub and we'll be happy to help.
+If you're having any problem, please [raise an issue](https://github.com/marcellov7/cordova-plugin-media-session/issues) on GitHub and we'll be happy to help.
+
+## Credits
