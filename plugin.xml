@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-        id="cordova-plugin-background-media" version="0.3.0">
+        id="cordova-plugin-background-media" version="1.0.0">
     <name>Background Media Plugin</name>
-    <description>Cordova plugin for background audio/video playback with HLS/DASH support and notification controls</description>
+    <description>Cordova plugin for background media playback with HLS and DASH support</description>
     <license>MIT</license>
-    <keywords>cordova,background,audio,video,hls,dash,streaming,player</keywords>
+    <keywords>cordova,background,media,audio,video,hls,dash,player</keywords>
     <js-module src="www/backgroundMedia.js" name="backgroundMedia">
         <clobbers target="cordova.plugins.backgroundMedia" />
     </js-module>
@@ -14,8 +14,20 @@
                 <param name="android-package" value="com.example.BackgroundMediaPlugin"/>
             </feature>
         </config-file>
-        <framework src="com.google.android.exoplayer:exoplayer:2.18.1" />
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service
+                android:name="com.example.BackgroundMediaService"
+                android:exported="false">
+                <intent-filter>
+                    <action android:name="android.media.browse.MediaBrowserService" />
+                </intent-filter>
+            </service>
+        </config-file>
+        <framework src="com.google.android.exoplayer:exoplayer-core:2.18.1" />
+        <framework src="com.google.android.exoplayer:exoplayer-hls:2.18.1" />
+        <framework src="com.google.android.exoplayer:exoplayer-dash:2.18.1" />
         <source-file src="src/android/BackgroundMediaPlugin.java" target-dir="src/com/example" />
+        <source-file src="src/android/BackgroundMediaService.java" target-dir="src/com/example" />
     </platform>
     <platform name="ios">
         <config-file target="config.xml" parent="/*">

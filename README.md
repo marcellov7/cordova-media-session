@@ -23,14 +23,13 @@ cordova plugin add cordova-plugin-background-media
 ```javascript
 var backgroundMedia = cordova.plugins.backgroundMedia;
 
-// Play media starting at 30 seconds
 backgroundMedia.play(
-    'https://example.com/media.m3u8',
+    'https://example.com/stream.m3u8',
     'Song Title',
     'Artist Name',
     'https://example.com/artwork.jpg',
     false, // isVideo
-    30, // startTime in seconds
+    0, // startTime
     function(message) {
         console.log('Success: ' + message);
     },

@@ -16,9 +16,6 @@ var BackgroundMedia = {
     setPlaybackTime: function(time, successCallback, errorCallback) {
         exec(successCallback, errorCallback, "BackgroundMedia", "setPlaybackTime", [time]);
     },
-    destroy: function(successCallback, errorCallback) {
-        exec(successCallback, errorCallback, "BackgroundMedia", "destroy", []);
-    },
     onEvent: function(callback) {
         exec(callback, null, "BackgroundMedia", "registerEventCallback", []);
     }
