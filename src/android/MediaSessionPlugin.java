@@ -2,6 +2,7 @@ package com.marcellov7.cordova.mediasession;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,8 +25,10 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 
 public class MediaSessionPlugin extends CordovaPlugin {
     private static final String TAG = "MediaSessionPlugin";
@@ -137,7 +140,10 @@ public class MediaSessionPlugin extends CordovaPlugin {
 
         final JSONArray artworkArray = options.optJSONArray("artwork");
         if (artworkArray != null) {
-            final List<JSONObject> artworkList = artworkArray.toList();
+            final List<JSONObject> artworkList = new ArrayList<>();
+            for (int i = 0; i < artworkArray.length(); i++) {
+                artworkList.add(artworkArray.getJSONObject(i));
+            }
             for (JSONObject artwork : artworkList) {
                 String src = artwork.getString("src");
                 if (src != null) {

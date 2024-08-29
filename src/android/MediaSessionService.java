@@ -1,5 +1,6 @@
 package com.marcellov7.cordova.mediasession;
 
+import com.marcellov7.cordova.mediasession.R;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 
 public class MediaSessionService extends Service {
     private static final String TAG = "MediaSessionService";
