@@ -1,5 +1,5 @@
 {
-    "name": "cordova-plugin-background-media",
+    "name": "capacitor-media-session",
     "version": "1.0.0",
     "description": "This Cordova plugin enables background audio and video playback with support for HLS and DASH streaming. It provides a unified JavaScript API for both Android and iOS platforms, allowing you to control media playback and display now playing information in the system's notification area or control center.",
     "scripts": {
@@ -7,7 +7,7 @@
     },
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/marcellov7/cordova-plugin-background-media.git"
+      "url": "git+https://github.com/marcellov7/capacitor-media-session.git"
     },
     "keywords": [
       "ecosystem:cordova",
@@ -25,7 +25,7 @@
     "author": "marcellov7",
     "license": "Apache-2.0",
     "bugs": {
-      "url": "https://github.com/marcellov7/cordova-plugin-background-media/issues"
+      "url": "https://github.com/marcellov7/capacitor-media-session/issues"
     },
-    "homepage": "https://github.com/marcellov7/ccordova-plugin-background-media#readme"
+    "homepage": "https://github.com/marcellov7/ccapacitor-media-session#readme"
   }
