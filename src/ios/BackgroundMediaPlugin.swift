@@ -5,6 +5,7 @@ import MediaPlayer
 class BackgroundMediaPlugin: CDVPlugin {
     
     var player: AVPlayer?
+    var eventCallback: CDVInvokedUrlCommand?
     
     @objc(play:)
     func play(command: CDVInvokedUrlCommand) {
@@ -22,12 +23,17 @@ class BackgroundMediaPlugin: CDVPlugin {
         }
         
         DispatchQueue.main.async { [weak self] in
+            // Stop any existing playback
+            self?.player?.pause()
+            self?.player = nil
+            
             self?.setupAudioSession()
             self?.player = AVPlayer(url: url)
             self?.player?.seek(to: CMTime(seconds: startTime, preferredTimescale: 1000))
             self?.player?.play()
             self?.setupRemoteTransportControls()
             self?.setupNowPlaying(title: title, artist: artist, artworkUrl: artworkUrl, isVideo: isVideo)
+            self?.setupPlayerObservers()
             
             let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "Playback started")
             self?.commandDelegate.send(pluginResult, callbackId: command.callbackId)
@@ -84,6 +90,11 @@ class BackgroundMediaPlugin: CDVPlugin {
         }
     }
 
+    @objc(registerEventCallback:)
+    func registerEventCallback(command: CDVInvokedUrlCommand) {
+        self.eventCallback = command
+    }
+
     @objc(destroy:)
     func destroy(command: CDVInvokedUrlCommand) {
         DispatchQueue.main.async { [weak self] in
@@ -114,6 +125,16 @@ class BackgroundMediaPlugin: CDVPlugin {
         
         commandCenter.pauseCommand.addTarget { [weak self] event in
             self?.player?.pause()
+            return .success
+        }
+        
+        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+            self?.sendEvent("onSkipForward", message: "Skipped forward")
+            return .success
+        }
+        
+        commandCenter.previousTrackCommand.addTarget { [weak self] event in
+            self?.sendEvent("onSkipBackward", message: "Skipped backward")
             return .success
         }
     }
@@ -149,5 +170,23 @@ class BackgroundMediaPlugin: CDVPlugin {
     
     private func clearNowPlaying() {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+    
+    private func setupPlayerObservers() {
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(playerItemDidReachEnd),
+                                               name: .AVPlayerItemDidPlayToEndTime,
+                                               object: player?.currentItem)
+    }
+    
+    @objc private func playerItemDidReachEnd() {
+        sendEvent("onPlaybackEnd", message: "Playback ended")
+    }
+    
+    private func sendEvent(_ event: String, message: String) {
+        guard let callback = eventCallback else { return }
+        let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: "\(event): \(message)")
+        result?.setKeepCallbackAs(true)
+        self.commandDelegate.send(result, callbackId: callback.callbackId)
     }
 }

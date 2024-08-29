@@ -9,6 +9,8 @@ This Cordova plugin enables background audio and video playback with support for
 - Media controls in system notification (Android) and control center (iOS)
 - Custom metadata display (title, artist, artwork)
 - Playback time control
+- Next/Previous track controls
+- Playback events (start, end, skip forward, skip backward)
 
 ## Installation
 
@@ -37,57 +39,28 @@ backgroundMedia.play(
     }
 );
 
-// Pause playback
-backgroundMedia.pause(
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
+// Listen for events
+backgroundMedia.onEvent(function(event) {
+    if (event.startsWith("onSkipForward")) {
+        console.log("User pressed skip forward");
+        // Start playback of next media
+    } else if (event.startsWith("onSkipBackward")) {
+        console.log("User pressed skip backward");
+        // Start playback of previous media
+    } else if (event.startsWith("onPlaybackEnd")) {
+        console.log("Playback ended");
+        // Start playback of next media
+    } else if (event.startsWith("onPlaybackStart")) {
+        console.log("Playback started");
     }
-);
+});
 
-// Stop playback
-backgroundMedia.stop(
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Set volume (0.0 to 1.0)
-backgroundMedia.setVolume(
-    0.5,
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Set playback time to 1 minute
-backgroundMedia.setPlaybackTime(
-    60,
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
-
-// Destroy the plugin and release resources
-backgroundMedia.destroy(
-    function(message) {
-        console.log('Success: ' + message);
-    },
-    function(error) {
-        console.error('Error: ' + error);
-    }
-);
+// Other methods
+backgroundMedia.pause(successCallback, errorCallback);
+backgroundMedia.stop(successCallback, errorCallback);
+backgroundMedia.setVolume(0.5, successCallback, errorCallback);
+backgroundMedia.setPlaybackTime(60, successCallback, errorCallback);
+backgroundMedia.destroy(successCallback, errorCallback);
 ```
 
 ## API Reference
@@ -96,51 +69,36 @@ backgroundMedia.destroy(
 
 Starts playback of the specified media.
 
-- `url` (String): The URL of the media to play (supports HLS and DASH)
-- `title` (String): The title of the media
-- `artist` (String): The artist name
-- `artwork` (String): URL of the artwork image
-- `isVideo` (Boolean): Set to true for video playback, false for audio
-- `startTime` (Number): The time in seconds to start playback from
-- `successCallback` (Function): Called on successful playback start
-- `errorCallback` (Function): Called if an error occurs
-
 ### pause(successCallback, errorCallback)
 
 Pauses the current playback.
-
-- `successCallback` (Function): Called when playback is successfully paused
-- `errorCallback` (Function): Called if an error occurs
 
 ### stop(successCallback, errorCallback)
 
 Stops the current playback and releases resources.
 
-- `successCallback` (Function): Called when playback is successfully stopped
-- `errorCallback` (Function): Called if an error occurs
-
 ### setVolume(volume, successCallback, errorCallback)
 
-Sets the playback volume.
-
-- `volume` (Number): Volume level from 0.0 (mute) to 1.0 (max)
-- `successCallback` (Function): Called when volume is successfully set
-- `errorCallback` (Function): Called if an error occurs
+Sets the playback volume (0.0 to 1.0).
 
 ### setPlaybackTime(time, successCallback, errorCallback)
 
-Sets the current playback time.
+Sets the current playback time in seconds.
 
-- `time` (Number): The time in seconds to set the playback to
-- `successCallback` (Function): Called when playback time is successfully set
-- `errorCallback` (Function): Called if an error occurs
+### onEvent(callback)
+
+Registers a callback to receive playback events.
 
 ### destroy(successCallback, errorCallback)
 
 Destroys the plugin instance and releases all resources.
 
-- `successCallback` (Function): Called when the plugin is successfully destroyed
-- `errorCallback` (Function): Called if an error occurs
+## Events
+
+- `onPlaybackStart`: Fired when playback starts
+- `onPlaybackEnd`: Fired when playback ends
+- `onSkipForward`: Fired when the user presses the next track button
+- `onSkipBackward`: Fired when the user presses the previous track button
 
 ## Platform Specific Notes
 

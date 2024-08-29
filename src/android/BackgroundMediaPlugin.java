@@ -2,6 +2,7 @@ package com.example;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -33,6 +34,7 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
     private String currentTitle;
     private String currentArtist;
     private Bitmap currentArtwork;
+    private CallbackContext eventCallback;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -60,6 +62,9 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
                 long time = args.getLong(0);
                 this.setPlaybackTime(time, callbackContext);
                 return true;
+            case "registerEventCallback":
+                this.eventCallback = callbackContext;
+                return true;
             case "destroy":
                 this.destroy(callbackContext);
                 return true;
@@ -69,14 +74,19 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
 
     private void play(String url, String title, String artist, String artworkUrl, boolean isVideo, long startTime, CallbackContext callbackContext) {
         cordova.getThreadPool().execute(() -> {
+            // Stop any existing playback
+            if (player != null) {
+                player.stop();
+                player.release();
+                player = null;
+            }
+
             currentTitle = title;
             currentArtist = artist;
             currentArtwork = loadBitmapFromUrl(artworkUrl);
 
             cordova.getActivity().runOnUiThread(() -> {
-                if (player == null) {
-                    player = new ExoPlayer.Builder(cordova.getActivity()).build();
-                }
+                player = new ExoPlayer.Builder(cordova.getActivity()).build();
                 MediaItem mediaItem = MediaItem.fromUri(url);
                 player.setMediaItem(mediaItem);
                 player.prepare();
@@ -84,6 +94,7 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
                 player.play();
 
                 setupNotification();
+                setupPlayerListeners();
 
                 callbackContext.success("Playback started");
             });
@@ -173,9 +184,55 @@ public class BackgroundMediaPlugin extends CordovaPlugin {
                     return PendingIntent.getActivity(cordova.getActivity(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                 }
             })
+            .setNotificationListener(new PlayerNotificationManager.NotificationListener() {
+                @Override
+                public void onNotificationPosted(int notificationId, Notification notification, boolean ongoing) {
+                    // Keep the service in the foreground when notification is posted
+                    cordova.getActivity().startForeground(notificationId, notification);
+                }
+
+                @Override
+                public void onNotificationCancelled(int notificationId, boolean dismissedByUser) {
+                    cordova.getActivity().stopForeground(true);
+                }
+            })
             .build();
 
             playerNotificationManager.setPlayer(player);
+            playerNotificationManager.setUseNextAction(true);
+            playerNotificationManager.setUsePreviousAction(true);
+        }
+    }
+
+    private void setupPlayerListeners() {
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int state) {
+                if (state == Player.STATE_ENDED) {
+                    sendEvent("onPlaybackEnd", "Playback ended");
+                } else if (state == Player.STATE_READY) {
+                    sendEvent("onPlaybackStart", "Playback started");
+                }
+            }
+
+            @Override
+            public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
+                if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                    if (newPosition.positionMs > oldPosition.positionMs) {
+                        sendEvent("onSkipForward", "Skipped forward");
+                    } else {
+                        sendEvent("onSkipBackward", "Skipped backward");
+                    }
+                }
+            }
+        });
+    }
+
+    private void sendEvent(String eventName, String message) {
+        if (eventCallback != null) {
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, eventName + ": " + message);
+            pluginResult.setKeepCallback(true);
+            eventCallback.sendPluginResult(pluginResult);
         }
     }
 
