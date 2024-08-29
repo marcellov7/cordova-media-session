@@ -118,7 +118,11 @@ public class MediaSessionPlugin extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (action.equals("setMetadata")) {
-            this.setMetadata(args.getJSONObject(0), callbackContext);
+            try {
+                this.setMetadata(args.getJSONObject(0), callbackContext);
+            } catch (IOException e) {
+                callbackContext.error("Error setting metadata: " + e.getMessage());
+            }
             return true;
         } else if (action.equals("setPlaybackState")) {
             this.setPlaybackState(args.getJSONObject(0), callbackContext);
