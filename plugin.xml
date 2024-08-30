@@ -1,62 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-        id="cordova-plugin-media-session"
+        id="cordova-media-session"
         version="1.0.0">
-    <name>Media Session</name>
-    <description>Cordova plugin for Media Sessions on Web, iOS and Android</description>
+    <name>Cordova Media Session</name>
+    <description>Cordova plugin for Media Session API</description>
     <license>MIT</license>
-    <keywords>cordova,media,session,audio,playback,controls</keywords>
-    
+    <keywords>cordova,media,session,api</keywords>
+
     <js-module src="www/MediaSession.js" name="MediaSession">
-        <clobbers target="cordova.plugins.MediaSession" />
+        <clobbers target="MediaSession" />
     </js-module>
-    
+
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="MediaSession">
-                <param name="android-package" value="com.marcellov7.cordova.mediasession.MediaSessionPlugin"/>
+                <param name="android-package" value="com.example.cordovamediasession.MediaSession"/>
             </feature>
         </config-file>
-        
-        <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service
-                android:name="com.marcellov7.cordova.mediasession.MediaSessionService"
-                android:enabled="true"
-                android:exported="true"
-                android:foregroundServiceType="mediaPlayback">
-                <intent-filter>
-                    <action android:name="android.intent.action.MEDIA_BUTTON" />
-                </intent-filter>
-            </service>
-            <receiver
-                android:name="androidx.media.session.MediaButtonReceiver"
-                android:exported="true">
-                <intent-filter>
-                    <action android:name="android.intent.action.MEDIA_BUTTON" />
-                </intent-filter>
-            </receiver>
-        </config-file>
-        
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-        </config-file>
-        
-        <source-file src="src/android/MediaSessionPlugin.java" target-dir="src/com/marcellov7/cordova/mediasession" />
-        <source-file src="src/android/MediaSessionService.java" target-dir="src/com/marcellov7/cordova/mediasession" />
-        <source-file src="src/android/MediaSessionCallback.java" target-dir="src/com/marcellov7/cordova/mediasession" />
-        <source-file src="src/android/R.java" target-dir="src/com/marcellov7/cordova/mediasession" />
-        
-        <resource-file src="src/android/res/drawable/ic_baseline_forward_30_24.xml" target="res/drawable/ic_baseline_forward_30_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_pause_24.xml" target="res/drawable/ic_baseline_pause_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_play_arrow_24.xml" target="res/drawable/ic_baseline_play_arrow_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_replay_30_24.xml" target="res/drawable/ic_baseline_replay_30_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_skip_next_24.xml" target="res/drawable/ic_baseline_skip_next_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_skip_previous_24.xml" target="res/drawable/ic_baseline_skip_previous_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_stop_24.xml" target="res/drawable/ic_baseline_stop_24.xml" />
-        <resource-file src="src/android/res/drawable/ic_baseline_volume_up_24.xml" target="res/drawable/ic_baseline_volume_up_24.xml" />
-        
-        <framework src="androidx.media:media:1.6.0" />
-        <framework src="com.android.support:support-v4:+" />
-        <framework src="com.android.support:support-annotations:+" />
+        <source-file src="src/android/MediaSession.java" target-dir="src/com/example/cordovamediasession" />
     </platform>
 </plugin>
