@@ -33,4 +33,9 @@
         <source-file src="src/android/MediaSession.java" target-dir="src/com/example/cordovamediasession" />
         <source-file src="src/android/MediaButtonReceiver.java" target-dir="src/com/example/cordovamediasession" />
     </platform>
+    <platform name="ios">
+        <js-module src="www/MediaSession.js" name="MediaSession">
+            <clobbers target="MediaSession" />
+        </js-module>
+    </platform>
 </plugin>
