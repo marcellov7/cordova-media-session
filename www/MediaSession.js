@@ -2,63 +2,61 @@ var exec = require('cordova/exec');
 
 var MediaSession = {
     setMetadata: function(options) {
-        if (cordova.platformId === 'android') {
-            return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
+            if (cordova.platformId === 'android') {
                 exec(resolve, reject, 'MediaSession', 'setMetadata', [options]);
-            });
-        } else {
-            if ('mediaSession' in navigator) {
+            } else if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata(options);
-                return Promise.resolve();
+                resolve();
             } else {
-                return Promise.reject('Media Session API not available');
+                reject('Media Session API not available');
             }
-        }
+        });
     },
     
     setPlaybackState: function(options) {
-        if (cordova.platformId === 'android') {
-            return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
+            if (cordova.platformId === 'android') {
                 exec(resolve, reject, 'MediaSession', 'setPlaybackState', [options]);
-            });
-        } else {
-            if ('mediaSession' in navigator) {
+            } else if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = options.playbackState;
-                return Promise.resolve();
+                resolve();
             } else {
-                return Promise.reject('Media Session API not available');
+                reject('Media Session API not available');
             }
-        }
+        });
     },
     
     setActionHandler: function(options, handler) {
-        if (cordova.platformId === 'android') {
-            return new Promise(function(resolve, reject) {
-                exec(resolve, reject, 'MediaSession', 'setActionHandler', [options, handler]);
-            });
-        } else {
-            if ('mediaSession' in navigator) {
+        return new Promise(function(resolve, reject) {
+            if (cordova.platformId === 'android') {
+                exec(function(result) {
+                    // Registra il gestore localmente per iOS
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.setActionHandler(options.action, handler);
+                    }
+                    resolve(result);
+                }, reject, 'MediaSession', 'setActionHandler', [options]);
+            } else if ('mediaSession' in navigator) {
                 navigator.mediaSession.setActionHandler(options.action, handler);
-                return Promise.resolve();
+                resolve();
             } else {
-                return Promise.reject('Media Session API not available');
+                reject('Media Session API not available');
             }
-        }
+        });
     },
     
     setPositionState: function(options) {
-        if (cordova.platformId === 'android') {
-            return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve, reject) {
+            if (cordova.platformId === 'android') {
                 exec(resolve, reject, 'MediaSession', 'setPositionState', [options]);
-            });
-        } else {
-            if ('mediaSession' in navigator) {
+            } else if ('mediaSession' in navigator) {
                 navigator.mediaSession.setPositionState(options);
-                return Promise.resolve();
+                resolve();
             } else {
-                return Promise.reject('Media Session API not available');
+                reject('Media Session API not available');
             }
-        }
+        });
     }
 };
 

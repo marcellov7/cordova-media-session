@@ -1,7 +1,6 @@
 package com.marcellov7.cordova.mediasession;
 
 import android.support.v4.media.session.MediaSessionCompat;
-
 import org.json.JSONObject;
 
 public class MediaSessionCallback extends MediaSessionCompat.Callback {

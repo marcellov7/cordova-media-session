@@ -1,4 +1,4 @@
-# cordova-plugin-media-session
+# cordova-media-session
 
 Cordova plugin for Media Sessions on iOS and Android. This plugin enables:
 - Customizable media playback notifications (including controls) on Android
@@ -8,7 +8,7 @@ Cordova plugin for Media Sessions on iOS and Android. This plugin enables:
 ## Installation
 
 ```bash
-cordova plugin add cordova-plugin-media-session
+cordova plugin add https://github.com/marcellov7/cordova-media-session
 ```
 
 ## Usage
@@ -24,18 +24,27 @@ mediaSession.setMetadata({
     artist: 'Artist Name',
     album: 'Album Name',
     artwork: [{ src: 'path/to/artwork.png', sizes: '512x512', type: 'image/png' }]
+}).then(function() {
+    console.log('Metadata set successfully');
+}).catch(function(error) {
+    console.error('Error setting metadata:', error);
 });
 
 // Set playback state
-mediaSession.setPlaybackState({ playbackState: 'playing' });
+mediaSession.setPlaybackState({ playbackState: 'playing' }).then(function() {
+    console.log('Playback state set successfully');
+}).catch(function(error) {
+    console.error('Error setting playback state:', error);
+});
 
 // Set action handlers
 mediaSession.setActionHandler({ action: 'play' }, function() {
+    console.log('Play action triggered');
     // Handle play action
-});
-
-mediaSession.setActionHandler({ action: 'pause' }, function() {
-    // Handle pause action
+}).then(function() {
+    console.log('Play action handler set successfully');
+}).catch(function(error) {
+    console.error('Error setting play action handler:', error);
 });
 
 // Set position state
@@ -43,6 +52,10 @@ mediaSession.setPositionState({
     duration: 300,
     playbackRate: 1,
     position: 150
+}).then(function() {
+    console.log('Position state set successfully');
+}).catch(function(error) {
+    console.error('Error setting position state:', error);
 });
 ```
 
@@ -61,12 +74,16 @@ Sets the metadata for the currently playing media.
     - `sizes`: Size of the image (e.g., '512x512')
     - `type`: MIME type of the image (e.g., 'image/png')
 
+Returns a Promise that resolves when the metadata is set successfully.
+
 ### setPlaybackState(options)
 
 Sets the current playback state.
 
 - `options`: An object containing:
   - `playbackState`: A string representing the playback state ('playing', 'paused', or 'none')
+
+Returns a Promise that resolves when the playback state is set successfully.
 
 ### setActionHandler(options, handler)
 
@@ -75,6 +92,8 @@ Sets a handler for a specific media action.
 - `options`: An object containing:
   - `action`: A string representing the action ('play', 'pause', 'seekbackward', 'seekforward', 'previoustrack', 'nexttrack', 'stop', 'seekto')
 - `handler`: A function to be called when the action is triggered
+
+Returns a Promise that resolves when the action handler is set successfully.
 
 ### setPositionState(options)
 
@@ -85,9 +104,11 @@ Updates the current media playback position state.
   - `playbackRate`: The current playback rate (number)
   - `position`: The current playback position in seconds (number)
 
+Returns a Promise that resolves when the position state is set successfully.
+
 ## Platform Specifics
 
-- On iOS that support it, this plugin uses the standard Web Media Session API.
+- On iOS and browsers that support it, this plugin uses the standard Web Media Session API.
 - On Android, where the Web Media Session API is not available in WebView, this plugin provides a native implementation that mimics the behavior of the Web API.
 
 ## Notes
@@ -111,6 +132,8 @@ This project is licensed under the MIT License.
 
 ## Support
 
-If you're having any problem, please [raise an issue](https://github.com/marcellov7/cordova-plugin-media-session/issues) on GitHub and we'll be happy to help.
+If you're having any problem, please [raise an issue](https://github.com/marcellov7/cordova-media-session/issues) on GitHub and we'll be happy to help.
 
 ## Credits
+
+This plugin is inspired by and partially based on various open-source Media Session implementations for mobile platforms.

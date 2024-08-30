@@ -1,15 +1,11 @@
 package com.marcellov7.cordova.mediasession;
 
-import com.marcellov7.cordova.mediasession.R;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.os.Binder;
@@ -78,7 +74,6 @@ public class MediaSessionService extends Service {
     @Override
     public boolean onUnbind(Intent intent) {
         this.destroy();
-
         return super.onUnbind(intent);
     }
 
@@ -112,40 +107,33 @@ public class MediaSessionService extends Service {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          startForeground(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            startForeground(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         } else {
-          startForeground(NOTIFICATION_ID, notificationBuilder.build());
+            startForeground(NOTIFICATION_ID, notificationBuilder.build());
         }
 
-        notificationActions.put("play", new NotificationCompat.Action(
-                R.drawable.ic_baseline_play_arrow_24, "Play", MediaButtonReceiver.buildMediaButtonPendingIntent(this, (PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY))
-        ));
-        notificationActions.put("pause", new NotificationCompat.Action(
-                R.drawable.ic_baseline_pause_24, "Pause", MediaButtonReceiver.buildMediaButtonPendingIntent(this, (PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE))
-        ));
-        notificationActions.put("seekbackward", new NotificationCompat.Action(
-                R.drawable.ic_baseline_replay_30_24, "Previous Track", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_REWIND)
-        ));
-        notificationActions.put("seekforward", new NotificationCompat.Action(
-                R.drawable.ic_baseline_forward_30_24, "Next Track", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_FAST_FORWARD)
-        ));
-        notificationActions.put("previoustrack", new NotificationCompat.Action(
-                R.drawable.ic_baseline_skip_previous_24, "Previous Track", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
-        ));
-        notificationActions.put("nexttrack", new NotificationCompat.Action(
-                R.drawable.ic_baseline_skip_next_24, "Next Track", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
-        ));
-        notificationActions.put("stop", new NotificationCompat.Action(
-                R.drawable.ic_baseline_stop_24, "Stop", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_STOP)
-        ));
+        initializeNotificationActions();
+        initializePlaybackStateActions();
+    }
 
+    private void initializeNotificationActions() {
+        notificationActions.put("play", new NotificationCompat.Action(
+                R.drawable.ic_baseline_play_arrow_24, "Play", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PLAY)));
+        notificationActions.put("pause", new NotificationCompat.Action(
+                R.drawable.ic_baseline_pause_24, "Pause", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PAUSE)));
+        notificationActions.put("previoustrack", new NotificationCompat.Action(
+                R.drawable.ic_baseline_skip_previous_24, "Previous", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)));
+        notificationActions.put("nexttrack", new NotificationCompat.Action(
+                R.drawable.ic_baseline_skip_next_24, "Next", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)));
+        notificationActions.put("stop", new NotificationCompat.Action(
+                R.drawable.ic_baseline_stop_24, "Stop", MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_STOP)));
+    }
+
+    private void initializePlaybackStateActions() {
         playbackStateActions.put("previoustrack", PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS);
-        playbackStateActions.put("seekbackward", PlaybackStateCompat.ACTION_REWIND);
-        playbackStateActions.put("play", (PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY));
-        playbackStateActions.put("pause", (PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE));
-        playbackStateActions.put("seekforward", PlaybackStateCompat.ACTION_FAST_FORWARD);
+        playbackStateActions.put("play", PlaybackStateCompat.ACTION_PLAY);
+        playbackStateActions.put("pause", PlaybackStateCompat.ACTION_PAUSE);
         playbackStateActions.put("nexttrack", PlaybackStateCompat.ACTION_SKIP_TO_NEXT);
-        playbackStateActions.put("seekto", PlaybackStateCompat.ACTION_SEEK_TO);
         playbackStateActions.put("stop", PlaybackStateCompat.ACTION_STOP);
     }
 
@@ -157,7 +145,7 @@ public class MediaSessionService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         MediaButtonReceiver.handleIntent(mediaSession, intent);
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
     }
 
     public void setPlaybackState(int playbackState) {
@@ -168,7 +156,7 @@ public class MediaSessionService extends Service {
         }
     }
 
-    public void setTitle(String title)  {
+    public void setTitle(String title) {
         if (!this.title.equals(title)) {
             this.title = title;
             mediaMetadataUpdate = true;
@@ -202,7 +190,6 @@ public class MediaSessionService extends Service {
         if (this.duration != duration) {
             this.duration = duration;
             mediaMetadataUpdate = true;
-            notificationUpdate = true;
         }
     }
 
@@ -227,73 +214,84 @@ public class MediaSessionService extends Service {
 
     public void update() {
         if (possibleActionsUpdate) {
-          notificationBuilder.mActions.clear();
-
-            long activePlaybackStateActions = 0;
-            int[] activeCompactViewActionIndices = new int[3];
-
-            int notificationActionIndex = 0;
-            int compactNotificationActionIndicesIndex = 0;
-            for (String actionName : possibleActions) {
-                if (plugin.hasActionHandler(actionName)) {
-                    if (actionName.equals("play") && playbackState != PlaybackStateCompat.STATE_PAUSED) {
-                        continue;
-                    }
-                    if (actionName.equals("pause") && playbackState != PlaybackStateCompat.STATE_PLAYING) {
-                        continue;
-                    }
-
-                    if (playbackStateActions.containsKey(actionName)) {
-                        activePlaybackStateActions = activePlaybackStateActions | playbackStateActions.get(actionName);
-                    }
-
-                    if (notificationActions.containsKey(actionName)) {
-                        notificationBuilder.addAction(notificationActions.get(actionName));
-                        if (possibleCompactViewActions.contains(actionName) && compactNotificationActionIndicesIndex < 3) {
-                            activeCompactViewActionIndices[compactNotificationActionIndicesIndex] = notificationActionIndex;
-                            compactNotificationActionIndicesIndex++;
-                        }
-                        notificationActionIndex++;
-                    }
-                }
-            }
-
-            playbackStateBuilder.setActions(activePlaybackStateActions);
-            if (compactNotificationActionIndicesIndex > 0) {
-                notificationStyle.setShowActionsInCompactView(Arrays.copyOfRange(activeCompactViewActionIndices, 0, compactNotificationActionIndicesIndex));
-            } else {
-                notificationStyle.setShowActionsInCompactView();
-            }
-
+            updateNotificationActions();
             possibleActionsUpdate = false;
             playbackStateUpdate = true;
             notificationUpdate = true;
         }
 
         if (playbackStateUpdate) {
-            playbackStateBuilder.setState(this.playbackState, this.position, this.playbackSpeed);
-            mediaSession.setPlaybackState(playbackStateBuilder.build());
+            updatePlaybackState();
             playbackStateUpdate = false;
         }
 
         if (mediaMetadataUpdate) {
-            mediaMetadataBuilder
-                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artwork)
-                    .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration);
-            mediaSession.setMetadata(mediaMetadataBuilder.build());
+            updateMediaMetadata();
             mediaMetadataUpdate = false;
         }
 
         if (notificationUpdate) {
-            notificationBuilder
-                    .setContentTitle(title)
-                    .setContentText(artist + " - " + album)
-                    .setLargeIcon(artwork);
-            notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+            updateNotification();
             notificationUpdate = false;
         }
+    }
+
+    private void updateNotificationActions() {
+        notificationBuilder.mActions.clear();
+        long activePlaybackStateActions = 0;
+
+        for (String actionName : possibleActions) {
+            if (plugin.hasActionHandler(actionName)) {
+                if ((actionName.equals("play") && playbackState != PlaybackStateCompat.STATE_PAUSED) ||
+                    (actionName.equals("pause") && playbackState != PlaybackStateCompat.STATE_PLAYING)) {
+                    continue;
+                }
+
+                if (playbackStateActions.containsKey(actionName)) {
+                    activePlaybackStateActions |= playbackStateActions.get(actionName);
+                }
+
+                if (notificationActions.containsKey(actionName)) {
+                    notificationBuilder.addAction(notificationActions.get(actionName));
+                }
+            }
+        }
+
+        playbackStateBuilder.setActions(activePlaybackStateActions);
+        
+        int[] compactViewActionIndices = notificationBuilder.mActions.stream()
+                .map(action -> possibleCompactViewActions.contains(action.getTitle().toString()) ? 
+                        notificationBuilder.mActions.indexOf(action) : -1)
+                .filter(index -> index != -1)
+                .limit(3)
+                .mapToInt(Integer::intValue)
+                .toArray();
+
+        if (compactViewActionIndices.length > 0) {
+            notificationStyle.setShowActionsInCompactView(compactViewActionIndices);
+        }
+    }
+
+    private void updatePlaybackState() {
+        playbackStateBuilder.setState(playbackState, position, playbackSpeed);
+        mediaSession.setPlaybackState(playbackStateBuilder.build());
+    }
+
+    private void updateMediaMetadata() {
+        mediaMetadataBuilder
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artwork)
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration);
+        mediaSession.setMetadata(mediaMetadataBuilder.build());
+    }
+
+    private void updateNotification() {
+        notificationBuilder
+                .setContentTitle(title)
+                .setContentText(artist + " - " + album)
+                .setLargeIcon(artwork);
+        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
     }
 }

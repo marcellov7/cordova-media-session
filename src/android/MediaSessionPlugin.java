@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 public class MediaSessionPlugin extends CordovaPlugin {
     private static final String TAG = "MediaSessionPlugin";
 
@@ -91,27 +90,20 @@ public class MediaSessionPlugin extends CordovaPlugin {
     }
 
     private Bitmap urlToBitmap(String url) throws IOException {
-        final boolean blobUrl = url.startsWith("blob:");
-        if (blobUrl) {
-            Log.i(TAG, "Converting Blob URLs to Bitmap for media artwork is not yet supported");
-        }
-
-        final boolean httpUrl = url.startsWith("http");
-        if (httpUrl) {
-            HttpURLConnection connection = (HttpURLConnection) (new URL(url)).openConnection();
+        if (url.startsWith("http") || url.startsWith("https")) {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setDoInput(true);
             connection.connect();
-            InputStream inputStream = connection.getInputStream();
-            return BitmapFactory.decodeStream(inputStream);
+            InputStream input = connection.getInputStream();
+            Bitmap bitmap = BitmapFactory.decodeStream(input);
+            input.close();
+            connection.disconnect();
+            return bitmap;
+        } else if (url.startsWith("data:image")) {
+            String base64Data = url.substring(url.indexOf(",") + 1);
+            byte[] decodedString = Base64.decode(base64Data, Base64.DEFAULT);
+            return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
         }
-
-        int base64Index = url.indexOf(";base64,");
-        if (base64Index != -1) {
-            String base64Data = url.substring(base64Index + 8);
-            byte[] decoded = Base64.decode(base64Data, Base64.DEFAULT);
-            return BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-        }
-
         return null;
     }
 
@@ -143,16 +135,11 @@ public class MediaSessionPlugin extends CordovaPlugin {
         album = options.optString("album", album);
 
         final JSONArray artworkArray = options.optJSONArray("artwork");
-        if (artworkArray != null) {
-            final List<JSONObject> artworkList = new ArrayList<>();
-            for (int i = 0; i < artworkArray.length(); i++) {
-                artworkList.add(artworkArray.getJSONObject(i));
-            }
-            for (JSONObject artwork : artworkList) {
-                String src = artwork.getString("src");
-                if (src != null) {
-                    this.artwork = urlToBitmap(src);
-                }
+        if (artworkArray != null && artworkArray.length() > 0) {
+            JSONObject artworkObj = artworkArray.getJSONObject(0);
+            String src = artworkObj.optString("src");
+            if (src != null) {
+                artwork = urlToBitmap(src);
             }
         }
 
@@ -162,23 +149,20 @@ public class MediaSessionPlugin extends CordovaPlugin {
         callbackContext.success();
     }
 
-    private void updateServicePlaybackState() {
-        if (service != null) {
-            int state;
-            if (playbackState.equals("playing")) {
-                state = PlaybackStateCompat.STATE_PLAYING;
-            } else if (playbackState.equals("paused")) {
-                state = PlaybackStateCompat.STATE_PAUSED;
-            } else {
-                state = PlaybackStateCompat.STATE_NONE;
-            }
-            service.setPlaybackState(state);
-            service.update();
-        }
-    }
-
     private void setPlaybackState(JSONObject options, CallbackContext callbackContext) throws JSONException {
         playbackState = options.getString("playbackState");
+
+        int state;
+        switch (playbackState) {
+            case "playing":
+                state = PlaybackStateCompat.STATE_PLAYING;
+                break;
+            case "paused":
+                state = PlaybackStateCompat.STATE_PAUSED;
+                break;
+            default:
+                state = PlaybackStateCompat.STATE_NONE;
+        }
 
         final boolean playback = playbackState.equals("playing") || playbackState.equals("paused");
         if (startServiceOnlyDuringPlayback && service == null && playback) {
@@ -187,19 +171,10 @@ public class MediaSessionPlugin extends CordovaPlugin {
             cordova.getActivity().unbindService(serviceConnection);
             service = null;
         } else if (service != null) {
-            updateServicePlaybackState();
-        }
-        callbackContext.success();
-    }
-
-    private void updateServicePositionState() {
-        if (service != null) {
-            service.setDuration(Math.round(duration * 1000));
-            service.setPosition(Math.round(position * 1000));
-            float playbackSpeed = playbackRate == 0.0 ? (float) 1.0 : (float) playbackRate;
-            service.setPlaybackSpeed(playbackSpeed);
+            service.setPlaybackState(state);
             service.update();
         }
+        callbackContext.success();
     }
 
     private void setPositionState(JSONObject options, CallbackContext callbackContext) throws JSONException {
@@ -208,7 +183,10 @@ public class MediaSessionPlugin extends CordovaPlugin {
         playbackRate = options.optDouble("playbackRate", playbackRate);
 
         if (service != null) { 
-            updateServicePositionState();
+            service.setDuration(Math.round(duration * 1000));
+            service.setPosition(Math.round(position * 1000));
+            service.setPlaybackSpeed((float) playbackRate);
+            service.update();
         }
         callbackContext.success();
     }
