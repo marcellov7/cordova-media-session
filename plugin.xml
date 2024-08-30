@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-        id="cordova-media-session"
+        id="cordova-plugin-media-session"
         version="1.0.0">
-    <name>Cordova Media Session</name>
+    <name>Cordova Media Session Plugin</name>
     <description>Cordova plugin for Media Session API</description>
     <license>MIT</license>
     <keywords>cordova,media,session,api</keywords>
@@ -17,6 +17,20 @@
                 <param name="android-package" value="com.example.cordovamediasession.MediaSession"/>
             </feature>
         </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <receiver android:name="com.example.cordovamediasession.MediaButtonReceiver" >
+                <intent-filter>
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
+                </intent-filter>
+            </receiver>
+        </config-file>
+
         <source-file src="src/android/MediaSession.java" target-dir="src/com/example/cordovamediasession" />
+        <source-file src="src/android/MediaButtonReceiver.java" target-dir="src/com/example/cordovamediasession" />
     </platform>
 </plugin>

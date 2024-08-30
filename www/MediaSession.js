@@ -1,45 +1,64 @@
-// MediaSession.js
-
 var exec = require('cordova/exec');
 
 var MediaSession = {
-    metadata: null,
-    playbackState: null,
-
     setMetadata: function(metadata) {
-        this.metadata = metadata;
-        if (cordova.platformId === 'android') {
-            exec(null, null, "MediaSession", "setMetadata", [metadata]);
-        } else if (cordova.platformId === 'ios') {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = new MediaMetadata(metadata);
+        return new Promise((resolve, reject) => {
+            if (cordova.platformId === 'android') {
+                exec(resolve, reject, "MediaSession", "setMetadata", [metadata]);
+            } else if (cordova.platformId === 'ios') {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: metadata.title,
+                        artist: metadata.artist,
+                        album: metadata.album
+                    });
+                    resolve();
+                } else {
+                    reject('MediaSession API not supported');
+                }
+            } else {
+                reject('Platform not supported');
             }
-        }
+        });
     },
 
     setPlaybackState: function(state) {
-        this.playbackState = state;
-        if (cordova.platformId === 'android') {
-            exec(null, null, "MediaSession", "setPlaybackState", [state]);
-        } else if (cordova.platformId === 'ios') {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = state.state;
+        return new Promise((resolve, reject) => {
+            if (cordova.platformId === 'android') {
+                exec(resolve, reject, "MediaSession", "setPlaybackState", [state]);
+            } else if (cordova.platformId === 'ios') {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = state.state;
+                    resolve();
+                } else {
+                    reject('MediaSession API not supported');
+                }
+            } else {
+                reject('Platform not supported');
             }
-        }
+        });
     },
 
     setActionHandler: function(action, handler) {
-        if (cordova.platformId === 'android') {
-            if (handler) {
-                exec(handler, null, "MediaSession", "setActionHandler", [action]);
+        return new Promise((resolve, reject) => {
+            if (cordova.platformId === 'android') {
+                if (handler) {
+                    exec(handler, null, "MediaSession", "setActionHandler", [action]);
+                } else {
+                    exec(null, null, "MediaSession", "clearActionHandler", [action]);
+                }
+                resolve();
+            } else if (cordova.platformId === 'ios') {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.setActionHandler(action, handler);
+                    resolve();
+                } else {
+                    reject('MediaSession API not supported');
+                }
             } else {
-                exec(null, null, "MediaSession", "clearActionHandler", [action]);
+                reject('Platform not supported');
             }
-        } else if (cordova.platformId === 'ios') {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.setActionHandler(action, handler);
-            }
-        }
+        });
     }
 };
 
