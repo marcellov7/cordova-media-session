@@ -89,6 +89,34 @@ public class MediaSessionPlugin extends CordovaPlugin {
         }
     }
 
+    private void updateServicePlaybackState() {
+        if (service != null) {
+            int state;
+            switch (playbackState) {
+                case "playing":
+                    state = PlaybackStateCompat.STATE_PLAYING;
+                    break;
+                case "paused":
+                    state = PlaybackStateCompat.STATE_PAUSED;
+                    break;
+                default:
+                    state = PlaybackStateCompat.STATE_NONE;
+            }
+            service.setPlaybackState(state);
+            service.update();
+        }
+    }
+
+    private void updateServicePositionState() {
+        if (service != null) {
+            service.setDuration(Math.round(duration * 1000));
+            service.setPosition(Math.round(position * 1000));
+            float playbackSpeed = playbackRate == 0.0 ? 1.0f : (float) playbackRate;
+            service.setPlaybackSpeed(playbackSpeed);
+            service.update();
+        }
+    }
+
     private Bitmap urlToBitmap(String url) throws IOException {
         if (url.startsWith("http") || url.startsWith("https")) {
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
@@ -152,18 +180,6 @@ public class MediaSessionPlugin extends CordovaPlugin {
     private void setPlaybackState(JSONObject options, CallbackContext callbackContext) throws JSONException {
         playbackState = options.getString("playbackState");
 
-        int state;
-        switch (playbackState) {
-            case "playing":
-                state = PlaybackStateCompat.STATE_PLAYING;
-                break;
-            case "paused":
-                state = PlaybackStateCompat.STATE_PAUSED;
-                break;
-            default:
-                state = PlaybackStateCompat.STATE_NONE;
-        }
-
         final boolean playback = playbackState.equals("playing") || playbackState.equals("paused");
         if (startServiceOnlyDuringPlayback && service == null && playback) {
             startMediaService();
@@ -171,8 +187,7 @@ public class MediaSessionPlugin extends CordovaPlugin {
             cordova.getActivity().unbindService(serviceConnection);
             service = null;
         } else if (service != null) {
-            service.setPlaybackState(state);
-            service.update();
+            updateServicePlaybackState();
         }
         callbackContext.success();
     }
@@ -183,10 +198,7 @@ public class MediaSessionPlugin extends CordovaPlugin {
         playbackRate = options.optDouble("playbackRate", playbackRate);
 
         if (service != null) { 
-            service.setDuration(Math.round(duration * 1000));
-            service.setPosition(Math.round(position * 1000));
-            service.setPlaybackSpeed((float) playbackRate);
-            service.update();
+            updateServicePositionState();
         }
         callbackContext.success();
     }
