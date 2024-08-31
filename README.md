@@ -1,6 +1,6 @@
 # Cordova Media Session Plugin
 
-This Cordova plugin provides a unified interface for the Media Session API on Android platforms. It offers a consistent API for managing media metadata and playback state, as well as handling media control actions.
+This Cordova plugin provides an interface for Media Sessions on Android, iOS, and Web. It allows you to control media playback, set metadata, and handle media control actions.
 
 ## Installation
 
@@ -10,119 +10,119 @@ cordova plugin add cordova-plugin-media-session
 
 ## Usage
 
-The plugin provides a global `MediaSession` object that offers a consistent API.
+The plugin is accessible through the `cordova.plugins.MediaSession` object.
 
 ### Setting Metadata
 
 ```javascript
-MediaSession.setMetadata({
-    title: "Song Title",
-    artist: "Artist Name",
-    album: "Album Name"
+cordova.plugins.MediaSession.setMetadata({
+    title: 'Song Name',
+    artist: 'Artist Name',
+    album: 'Album Name',
+    artwork: [
+        { src: 'https://example.com/artwork.png', sizes: '512x512', type: 'image/png' }
+    ]
 }).then(() => {
-    console.log("Metadata set successfully");
+    console.log('Metadata set successfully');
 }).catch((error) => {
-    console.error("Error setting metadata:", error);
+    console.error('Error setting metadata', error);
 });
 ```
 
 ### Setting Playback State
 
 ```javascript
-MediaSession.setPlaybackState({
-    state: "playing", // or "paused"
-    position: 0,
-    speed: 1.0
+cordova.plugins.MediaSession.setPlaybackState({
+    playbackState: 'playing' // or 'paused'
 }).then(() => {
-    console.log("Playback state set successfully");
+    console.log('Playback state set successfully');
 }).catch((error) => {
-    console.error("Error setting playback state:", error);
+    console.error('Error setting playback state', error);
 });
 ```
 
 ### Handling Actions
 
 ```javascript
-MediaSession.setActionHandler("play", function() {
-    console.log("Play clicked");
-    // Your play logic here
+cordova.plugins.MediaSession.setActionHandler({
+    action: 'play'
+}, () => {
+    console.log('Play action triggered');
+    // Start playback here
 });
 
-MediaSession.setActionHandler("pause", function() {
-    console.log("Pause clicked");
-    // Your pause logic here
+cordova.plugins.MediaSession.setActionHandler({
+    action: 'pause'
+}, () => {
+    console.log('Pause action triggered');
+    // Pause playback here
 });
 
-MediaSession.setActionHandler("nexttrack", function() {
-    console.log("Next track clicked");
-    // Your next track logic here
-});
-
-MediaSession.setActionHandler("previoustrack", function() {
-    console.log("Previous track clicked");
-    // Your previous track logic here
-});
+// Other available actions: 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward', 'seekto', 'stop'
 ```
 
-## Platform Support
-
-- Android 5.0+ (API level 21+)
-
-## Developer Notes
-
-- The plugin provides a unified API that works on Android.
-- On Android, the plugin uses native Media Session APIs under the hood.
-- The plugin creates a notification with media controls when metadata and playback state are set.
-- Make sure your app has the necessary permissions to show notifications.
-
-## Example
-
-Here's a complete example of how to use the plugin:
+### Setting Position State
 
 ```javascript
-document.addEventListener('deviceready', onDeviceReady, false);
-
-function onDeviceReady() {
-    // Set up media session
-    MediaSession.setMetadata({
-        title: "Amazing Song",
-        artist: "Awesome Artist",
-        album: "Fantastic Album"
-    }).then(() => {
-        return MediaSession.setPlaybackState({
-            state: "playing",
-            position: 0,
-            speed: 1.0
-        });
-    }).then(() => {
-        console.log("Media session set up successfully");
-    }).catch((error) => {
-        console.error("Error setting up media session:", error);
-    });
-
-    // Set up action handlers
-    MediaSession.setActionHandler("play", function() {
-        console.log("Play clicked");
-        // Your play logic here
-    });
-
-    MediaSession.setActionHandler("pause", function() {
-        console.log("Pause clicked");
-        // Your pause logic here
-    });
-
-    MediaSession.setActionHandler("nexttrack", function() {
-        console.log("Next track clicked");
-        // Your next track logic here
-    });
-
-    MediaSession.setActionHandler("previoustrack", function() {
-        console.log("Previous track clicked");
-        // Your previous track logic here
-    });
-}
+cordova.plugins.MediaSession.setPositionState({
+    duration: 300, // total duration in seconds
+    position: 60,  // current position in seconds
+    playbackRate: 1.0 // playback speed
+}).then(() => {
+    console.log('Position state set successfully');
+}).catch((error) => {
+    console.error('Error setting position state', error);
+});
 ```
 
-## License
+## Behavior on Different Platforms
 
-This project is licensed under the MIT License.
+- **Android**: Uses a native implementation to provide media controls in the lock screen and notifications.
+- **iOS and Web**: Uses the browser's native Media Sessions API, if supported.
+
+## Notes
+
+- On iOS and Web, functionality depends on the browser's support for the Media Sessions API.
+- For the best experience on Android, make sure to handle all relevant actions (`play`, `pause`, `previoustrack`, `nexttrack`, etc.).
+- Artwork on Android supports remote URLs and base64 data.
+
+## Complete Usage Example
+
+```javascript
+document.addEventListener('deviceready', function() {
+    // Set initial metadata
+    cordova.plugins.MediaSession.setMetadata({
+        title: 'My Awesome Song',
+        artist: 'The Great Artist',
+        album: 'Best Album Ever',
+        artwork: [
+            { src: 'https://example.com/album-art.jpg', sizes: '512x512', type: 'image/jpeg' }
+        ]
+    });
+
+    // Set initial playback state
+    cordova.plugins.MediaSession.setPlaybackState({ playbackState: 'paused' });
+
+    // Handle play action
+    cordova.plugins.MediaSession.setActionHandler({ action: 'play' }, function() {
+        // Start playback
+        myAudioElement.play();
+        cordova.plugins.MediaSession.setPlaybackState({ playbackState: 'playing' });
+    });
+
+    // Handle pause action
+    cordova.plugins.MediaSession.setActionHandler({ action: 'pause' }, function() {
+        // Pause playback
+        myAudioElement.pause();
+        cordova.plugins.MediaSession.setPlaybackState({ playbackState: 'paused' });
+    });
+
+    // Update position state periodically
+    setInterval(function() {
+        cordova.plugins.MediaSession.setPositionState({
+            duration: myAudioElement.duration,
+            position: myAudioElement.currentTime,
+            playbackRate: myAudioElement.playbackRate
+        });
+    }, 1000);
+}, false);

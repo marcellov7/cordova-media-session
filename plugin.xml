@@ -1,41 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
         id="cordova-plugin-media-session"
         version="1.0.0">
-    <name>Cordova Media Session Plugin</name>
-    <description>Cordova plugin for Media Session API</description>
+    <name>Media Session</name>
+    <description>Cordova plugin for Media Sessions on Android</description>
     <license>MIT</license>
-    <keywords>cordova,media,session,api</keywords>
-
+    <keywords>cordova,media,session,android</keywords>
+    
     <js-module src="www/MediaSession.js" name="MediaSession">
-        <clobbers target="MediaSession" />
+        <clobbers target="cordova.plugins.MediaSession" />
     </js-module>
-
+    
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="MediaSession">
-                <param name="android-package" value="com.example.cordovamediasession.MediaSession"/>
+                <param name="android-package" value="io.github.marcellov7.cordova.mediasessionplugin.MediaSessionPlugin"/>
             </feature>
         </config-file>
-
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-        </config-file>
-
+        
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <receiver android:name="com.example.cordovamediasession.MediaButtonReceiver" >
-                <intent-filter>
-                    <action android:name="android.intent.action.MEDIA_BUTTON" />
-                </intent-filter>
-            </receiver>
+            <service android:name="io.github.marcellov7.cordova.mediasessionplugin.MediaSessionService" android:exported="false" />
         </config-file>
-
-        <source-file src="src/android/MediaSession.java" target-dir="src/com/example/cordovamediasession" />
-        <source-file src="src/android/MediaButtonReceiver.java" target-dir="src/com/example/cordovamediasession" />
-    </platform>
-    <platform name="ios">
-        <js-module src="www/MediaSession.js" name="MediaSession">
-            <clobbers target="MediaSession" />
-        </js-module>
+        
+        <source-file src="src/android/MediaSessionPlugin.java" target-dir="src/io/github/marcellov7/cordova/mediasessionplugin" />
+        <source-file src="src/android/MediaSessionService.java" target-dir="src/io/github/marcellov7/cordova/mediasessionplugin" />
+        <source-file src="src/android/MediaSessionCallback.java" target-dir="src/io/github/marcellov7/cordova/mediasessionplugin" />
+        
+        <framework src="androidx.media:media:1.6.0" />
     </platform>
 </plugin>
