@@ -24,7 +24,22 @@
         </config-file>
         
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
-            <service android:name="io.github.marcellov7.cordova.mediasessionplugin.MediaSessionService" android:exported="false" />
+            <service
+                android:name="io.github.marcellov7.cordova.mediasessionplugin.MediaSessionService"
+                android:enabled="true"
+                android:exported="true"
+                android:foregroundServiceType="mediaPlayback">
+                <intent-filter>
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
+                </intent-filter>
+            </service>
+            <receiver
+                android:name="androidx.media.session.MediaButtonReceiver"
+                android:exported="true">
+                <intent-filter>
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
+                </intent-filter>
+            </receiver>
         </config-file>
         
         <source-file src="src/android/MediaSessionPlugin.java" target-dir="src/io/github/marcellov7/cordova/mediasessionplugin" />
