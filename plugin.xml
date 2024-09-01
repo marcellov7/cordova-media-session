@@ -19,6 +19,10 @@
             </feature>
         </config-file>
         
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+        </config-file>
+        
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service android:name="io.github.marcellov7.cordova.mediasessionplugin.MediaSessionService" android:exported="false" />
         </config-file>
