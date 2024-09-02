@@ -5,7 +5,7 @@
         version="1.0.0">
     <name>Media Session</name>
     <description>Cordova plugin for Media Sessions on Android</description>
-    <license>MIT</license>
+    <license>Apache 2.0</license>
     <keywords>cordova,media,session,android</keywords>
     
     <js-module src="www/MediaSession.js" name="MediaSession">
